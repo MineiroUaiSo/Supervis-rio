@@ -1,0 +1,1218 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulação 3D de Caixa d'Água com Sensor Ultrassônico</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+        }
+        #container {
+            width: 100vw;
+            height: 100vh;
+            display: block;
+        }
+        /* Custom styles for the range slider */
+        input {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 6px;
+            background: #4A5568;
+            border-radius: 5px;
+            outline: none;
+            opacity: 0.7;
+            transition: opacity .2s;
+        }
+        /* Style for disabled slider */
+        input:disabled {
+            background: #6B7280; /* Slightly different background for disabled state */
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        input:hover {
+            opacity: 1;
+        }
+        input::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: #3B82F6;
+            cursor: pointer;
+            border-radius: 50%;
+            border: 2px solid white;
+        }
+        input:disabled::-webkit-slider-thumb {
+            background: #9CA3AF; /* Grey out thumb when disabled */
+            cursor: not-allowed;
+        }
+        input::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            background: #3B82F6;
+            cursor: pointer;
+            border-radius: 50%;
+            border: 2px solid white;
+        }
+        input:disabled::-moz-range-thumb {
+            background: #9CA3AF; /* Grey out thumb when disabled */
+            cursor: not-allowed;
+        }
+        .rotation-control-btn {
+            background-color: rgba(55, 65, 81, 0.7);
+            color: white;
+            border: 1px solid rgba(75, 85, 99, 0.8);
+            border-radius: 0.75rem;
+            padding: 0.3rem 0.4rem; /* Decreased padding */
+            font-size: 0.55rem; /* Decreased font size */
+            display: flex;
+            align-items: center;
+            gap: 0.2rem;
+            cursor: pointer;
+            transition: background-color 0.2s, border-color 0.2s, transform 0.1s;
+        }
+        .rotation-control-btn:hover {
+            background-color: rgba(75, 85, 99, 0.8);
+            border-color: rgba(107, 114, 128, 0.8);
+            transform: translateY(-1px);
+           }
+        .rotation-control-btn svg { /* Keep SVG styles but they won't be used */
+            width: 0.9rem;
+            height: 0.9rem;
+        }
+        .rotation-control-btn img { /* Keep IMG styles but they won't be used */
+            width: 0.9rem;
+            height: 0.9rem;
+        }
+
+        /* New styles for the operating panel (DOM element) */
+        #operating-panel-dom {
+            position: absolute;
+            top: 5.5rem; /* Adjusted to be below toggle buttons (2rem + approx 2.5rem button height + 1rem spacing) */
+            right: 2rem; /* Aligned with toggle buttons */
+            background-color: rgba(55, 65, 81, 0.7);
+            color: white;
+            border: 1px solid rgba(75, 85, 99, 0.8);
+            border-radius: 0.75rem;
+            padding: 0.8rem;
+            font-size: 0.75rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+            pointer-events: none; /* Disable mouse events on the panel itself, except for specific elements */
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+            min-width: 70px; /* Kept for initial load, will be overridden by JS calculation */
+            text-align: right; /* Align text to the right as per example */
+        }
+        #operating-panel-dom .panel-line {
+            white-space: nowrap; /* Prevent wrapping */
+            display: flex; /* Use flex to align value and label */
+            justify-content: flex-end; /* Align to the right */
+            align-items: baseline;
+        }
+        #operating-panel-dom .panel-status-on {
+            color: red;
+            font-weight: bold;
+        }
+        #operating-panel-dom .panel-status-off {
+            color: green;
+            font-weight: bold;
+        }
+        #operating-panel-dom .panel-value-text {
+            color: white; /* Default color for other values */
+            font-weight: bold;
+        }
+        /* Styles for toggling labels */
+        .panel-label-text {
+            font-weight: normal; /* Labels are not bold by default */
+            color: #ccc; /* Lighter color for labels */
+            margin-right: 0.25rem; /* Small margin to separate from value */
+            order: -1; /* Place label before value */
+        }
+        .panel-label-text.hidden {
+            display: none;
+        }
+        /* Style for the info toggle button */
+        #info-toggle-btn {
+            background-color: rgba(55, 65, 81, 0.7);
+            color: white;
+            border: 1px solid rgba(75, 85, 99, 0.8);
+            border-radius: 50%; /* Make it round */
+            width: 1.5rem; /* 24px */
+            height: 1.5rem; /* 24px */
+            font-size: 0.75rem; /* Smaller font for "i" */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background-color 0.2s, border-color 0.2s;
+            z-index: 10; /* Ensure it's above other elements */
+        }
+        #info-toggle-btn:hover {
+            background-color: rgba(75, 85, 99, 0.8);
+            border-color: rgba(107, 114, 128, 0.8);
+        }
+
+        /* Styles for Settings Panel */
+        #settings-panel {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(30, 41, 59, 0.9); /* Darker blue-gray */
+            color: white;
+            border: 1px solid rgba(75, 85, 99, 0.8);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            font-size: 0.875rem; /* text-sm */
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            z-index: 20; /* Above other UI elements */
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            display: none; /* Hidden by default */
+            flex-direction: column;
+            gap: 1rem;
+        }
+        #settings-panel label {
+            display: block;
+            margin-bottom: 0.25rem;
+            font-weight: bold;
+            color: #E2E8F0; /* Light gray for labels */
+        }
+        #settings-panel input[type="text"] {
+            width: 100%;
+            padding: 0.5rem;
+            border-radius: 0.5rem;
+            border: 1px solid #4A5568;
+            background-color: #2D3748;
+            color: white;
+            font-size: 1rem;
+        }
+        #settings-panel input[type="text"]:focus {
+            outline: none;
+            border-color: #3B82F6;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
+        }
+        #settings-panel .settings-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+        #settings-panel .settings-buttons button {
+            padding: 0.6rem 1.2rem;
+            border-radius: 0.5rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.1s;
+        }
+        #settings-panel .settings-buttons button.save-btn {
+            background-color: #10B981; /* Green */
+            color: white;
+        }
+        #settings-panel .settings-buttons button.save-btn:hover {
+            background-color: #059669;
+            transform: translateY(-1px);
+        }
+        #settings-panel .settings-buttons button.cancel-btn {
+            background-color: #EF4444; /* Red */
+            color: white;
+        }
+        #settings-panel .settings-buttons button.cancel-btn:hover {
+            background-color: #DC2626;
+            transform: translateY(-1px);
+        }
+        .error-message {
+            color: #F87171; /* Red color for errors */
+            font-size: 0.75rem;
+            margin-top: 0.25rem;
+        }
+    </style>
+</head>
+<body class="bg-gray-900">
+
+    <div id="container"></div>
+
+    <!-- Main UI Controls (will be toggled) -->
+    <div id="main-ui-controls" class="absolute bottom-8 left-1/2 -translate-x-1/2 p-1 rounded-xl shadow-lg bg-gray-800 bg-opacity-70 backdrop-blur-sm border border-gray-700 flex flex-col items-center max-w-[160px] w-full">
+        <div class="text-center mb-1">
+            <span class="text-lg md:text-xl font-bold text-white" id="volume-display">1500.0 L</span>
+        </div>
+
+        <div class="w-full">
+            <label for="level-slider" class="sr-only">Ajustar Nível (0% a 100%)</label>
+            <input id="level-slider" type="range" min="0" max="100" value="50" class="w-full">
+        </div>
+
+        <!-- New Consumption Slider -->
+        <div class="w-full mt-4"> <!-- Added margin-top for spacing -->
+            <span id="consumption-label" class="block text-sm font-medium text-gray-300 text-center">0 L/H</span>
+            <input id="consumption-slider" type="range" min="0" max="1000" value="40" class="w-full">
+        </div>
+    </div>
+
+    <!-- Top Right Buttons -->
+    <div id="top-right-buttons" class="absolute top-2 right-2 flex space-x-1">
+        <button id="fixed-view-btn" class="rotation-control-btn">
+            <span>FIXO</span>
+        </button>
+        <button id="rotation-3d-btn" class="rotation-control-btn">
+            <span>3D</span>
+        </button>
+    </div>
+
+    <!-- Top Left Buttons -->
+    <div id="top-left-buttons" class="absolute top-2 left-2">
+        <!-- Settings Button -->
+        <button id="settings-btn" class="rotation-control-btn">
+            <span>CONFIGURAÇÕES</span>
+        </button>
+    </div>
+
+
+    <!-- Operating Panel DOM Element -->
+    <div id="operating-panel-dom">
+        <!-- Content will be dynamically inserted here by JavaScript -->
+    </div>
+
+    <!-- New Info Toggle Button -->
+    <button id="info-toggle-btn" class="absolute right-2" style="top: calc(5.5rem + 0.8rem + (5 * 0.75rem) + 0.25rem + 1rem);">
+        ⓘ
+    </button>
+
+    <!-- Settings Panel -->
+    <div id="settings-panel" class="hidden">
+        <h2 class="text-xl font-bold mb-4 text-center">Configurações da Simulação</h2>
+        
+        <div>
+            <label for="tank-capacity-input">Capacidade do tanque:</label>
+            <input type="text" id="tank-capacity-input" class="w-full" placeholder="Ex: 3000">
+            <span class="panel-label-text"> em litros</span>
+            <div id="tank-capacity-error" class="error-message"></div>
+        </div>
+
+        <div>
+            <label for="pump-flow-input">Taxa de fluxo da bomba:</label>
+            <input type="text" id="pump-flow-input" class="w-full" placeholder="Ex: 3000">
+            <span class="panel-label-text"> L/H</span>
+            <div id="pump-flow-error" class="error-message"></div>
+        </div>
+
+        <div>
+            <label for="pump-on-percentage-input">Ligar bomba:</label>
+            <input type="text" id="pump-on-percentage-input" class="w-full" placeholder="Ex: 75">
+            <span class="panel-label-text">% do nível da caixa d'água</span>
+            <div id="pump-on-percentage-error" class="error-message"></div>
+        </div>
+
+        <div>
+            <label for="pump-off-percentage-input">Desligar bomba:</label>
+            <input type="text" id="pump-off-percentage-input" class="w-full" placeholder="Ex: 100">
+            <span class="panel-label-text">% do nível da caixa d'água</span>
+            <div id="pump-off-percentage-error" class="error-message"></div>
+        </div>
+
+        <div class="settings-buttons">
+            <button id="save-settings-btn" class="save-btn">Salvar</button>
+            <button id="cancel-settings-btn" class="cancel-btn">Cancelar</button>
+        </div>
+    </div>
+
+
+    <script>
+        window.onload = function() { // Encapsulates all JavaScript code
+            // === Basic Scene Setup ===
+            let scene, camera, renderer, controls;
+            let rootGroup;
+            let waterTank, water, ultrasonicSensor, waterTankLid;
+            let clock;
+            let wavePulses = [];
+            const NUM_WAVES = 4;
+            let isRotationEnabled = true; // State for 3D rotation vs fixed view
+
+            var draggableObject = null; // Objeto atualmente arrastado
+            var isDraggingTank = false; // Sinalizador para indicar se o arrasto do tanque está ativo
+            var dragStartScreenY = 0; // Coordenada Y da tela onde o arrasto começou
+            var tankInitialPosOnDrag = new THREE.Vector3(); // Posição inicial do tanque ao iniciar o arrasto
+            const DRAG_SENSITIVITY_FACTOR = 0.33; // Ajusta a velocidade de arrasto
+            const VERTICAL_DRAG_WORLD_SCALE = 0.05; // Escala pixels da tela para unidades do mundo para movimento vertical
+
+            // Constantes para dimensões do tanque
+            const TANK_HEIGHT = 10 * 0.9; // Altura do tanque cilíndrico
+            const TANK_RADIUS = 5; // Raio do tanque cilíndrico
+            const LID_OVERHANG_FACTOR = 1.10; // Fator para o tamanho da tampa em relação ao tanque
+
+            // Cores para exibição do nível de água (Vermelho, Amarelo, Verde)
+            const COLOR_LOW = new THREE.Color(0xFF0000); // Vermelho para água baixa
+            const COLOR_MID = new THREE.Color(0xFBBF24); // Amarelo para água média
+            const COLOR_HIGH = new THREE.Color(0x22C55E); // Verde para água alta
+
+            // Variáveis para o painel de operação e controle de tempo
+            let runningTime = 0; // Tempo em que o sistema está LIGADO (em segundos)
+            let stoppedTime = 0; // Tempo em que o sistema está DESLIGADO (em segundos)
+            let prevDetailedState = 'RUNNING'; // Estado detalhado anterior para detecção de transição
+            let currentDetailedState = 'RUNNING'; // Estado detalhado atual do sistema
+
+            // Variáveis de volume de água e consumo
+            let currentTankVolumeLiters = 1500.0; // Volume atual de água no tanque (inicial 1500L conforme solicitado)
+            let currentConsumptionRateLPH = 0; // Taxa de consumo de água em Litros por Hora (do slider de consumo)
+
+            // Variáveis para consumo gradual de água
+            let consumptionAccumulator100ms = 0; // Acumula tempo para disparar etapas de consumo de 0.1s
+            const CONSUMPTION_STEP_INTERVAL_SECONDS = 0.1; // Intervalo para cada etapa de consumo (0.1 segundos)
+
+            // --- VARIÁVEIS DE CONFIGURAÇÃO (AGORA ATUALIZÁVEIS PELO PAINEL) ---
+            let MAX_CAPACITY_LITERS = 3000; // Capacidade máxima do tanque em Litros
+            // A bomba enche a X litros/hora. Isso é convertido para uma taxa por passo de 0.1s.
+            // Para manter a consistência com a lógica de consumo (X L/H em 10s fracionado em 100 passos),
+            // PUMP_RATE_FOR_10S_SIMULATION será a quantidade total de litros que a bomba adiciona em 10 segundos.
+            let PUMP_RATE_FOR_10S_SIMULATION = 3000; // Quantidade total de litros que a bomba adiciona em 10 segundos
+            let PUMP_ACTIVATION_THRESHOLD_PERCENTAGE = 75; // Limite para ativar a bomba (75% do volume total).
+            let PUMP_DEACTIVATION_THRESHOLD_PERCENTAGE = 100; // Limite para desativar a bomba (100% do volume total).
+
+            // Variável de estado da bomba
+            let isPumpOn = false; // Controla se a bomba está ligada ou desligada.
+
+            // Referências aos elementos DOM dos sliders, labels e botões
+            let levelSlider;
+            let consumptionSlider;
+            let consumptionLabel;
+            let infoToggleButton;
+            let settingsButton;
+            let mainUiControls; // Div que contém os sliders e volume display
+            let topRightButtons; // Div que contém os botões FIXO/3D/Settings
+            let operatingPanelDom; // Painel de operação
+            let settingsPanel;
+            let tankCapacityInput;
+            let pumpFlowInput;
+            let pumpOnPercentageInput;
+            let pumpOffPercentageInput;
+            let saveSettingsBtn;
+            let cancelSettingsBtn;
+
+            // Variável para armazenar o timestamp do último frame para cálculo do delta
+            let lastFrameTimestamp = performance.now();
+
+            // Variável global para controlar a visibilidade das legendas no painel
+            let areLabelsVisible = false; // Por padrão, as legendas começam ocultas.
+
+            // Variável para a porcentagem atual do tanque, declarada uma única vez no escopo global
+            let currentTankPercentage;
+
+
+            /**
+             * Initializes the Three.js scene, camera, renderer, and controls.
+             * Sets up lighting, ground, and creates the water tank, water, sensor, and lid.
+             * Attaches event listeners for user interactions.
+             */
+            function init() {
+                // Scene setup
+                scene = new THREE.Scene();
+                scene.background = new THREE.Color(0x111827); // Dark background
+
+                // Camera setup
+                camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+                camera.position.set(15.27, 10.99, 0.48); // Initial camera position
+
+                // Renderer setup
+                renderer = new THREE.WebGLRenderer({ antialias: true });
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                renderer.setPixelRatio(window.devicePixelRatio);
+                renderer.shadowMap.enabled = true; // Enable shadows
+                renderer.shadowMap.type = THREE.PCFSoftShadowMap; // Soft shadows
+                renderer.outputEncoding = THREE.sRGBEncoding; // For correct color rendering
+                renderer.toneMapping = THREE.ACESFilmicToneMapping; // Tone mapping for realistic lighting
+                renderer.toneMappingExposure = 1.0;
+
+                document.getElementById('container').appendChild(renderer.domElement); // Add renderer to DOM
+
+                clock = new THREE.Clock(); // Clock for animation timing (used for elapsedTime for waves)
+
+                // Root group for the tank and sensor, allows unified movement
+                rootGroup = new THREE.Group();
+                scene.add(rootGroup);
+                rootGroup.position.set(0.00, 0.00, 9.90); // Initial position of the root group
+
+                // Orbit controls for camera interaction
+                controls = new THREE.OrbitControls(camera, renderer.domElement);
+                controls.target.set(-1.73, 4.68, 5.13); // Point the camera looks at
+                controls.enableDamping = true; // Smooth camera movement
+                controls.enabled = isRotationEnabled; // Enable/disable based on rotation state
+                controls.addEventListener('end', onCameraControlsEnd); // Listen for camera movement end
+
+                // Lighting
+                const hemisphereLight = new THREE.HemisphereLight(0x87CEEB, 0x4A2F2F, 0.8); // Sky and ground light
+                scene.add(hemisphereLight);
+
+                const mainLight = new THREE.DirectionalLight(0xfff8e7, 1.0); // Main directional light
+                mainLight.position.set(-20, 30, 10);
+                mainLight.castShadow = false; // Disable shadows for this light
+                scene.add(mainLight);
+                
+                const fillLight = new THREE.PointLight(0xffffff, 0.5, 100, 2); // Fill light
+                fillLight.position.set(20, 10, -10);
+                scene.add(fillLight);
+                
+                // Floor
+                const floorGeometry = new THREE.PlaneGeometry(50, 50);
+                const floorMaterial = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.8 });
+                const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+                floor.rotation.x = -Math.PI / 2; // Rotate to lie flat
+                floor.position.y = -0.01; // Slightly below y=0
+                floor.receiveShadow = true; // Floor receives shadows
+                scene.add(floor);
+
+                // Create 3D objects
+                createWaterTank();
+                createWater();
+                createUltrasonicSensor();
+                createWaterTankLid();
+                createWavePulses();
+                
+                // Get references to DOM elements for sliders and label
+                levelSlider = document.getElementById('level-slider');
+                consumptionSlider = document.getElementById('consumption-slider');
+                consumptionLabel = document.getElementById('consumption-label');
+                infoToggleButton = document.getElementById('info-toggle-btn');
+                settingsButton = document.getElementById('settings-btn');
+                mainUiControls = document.getElementById('main-ui-controls');
+                topRightButtons = document.getElementById('top-right-buttons');
+                operatingPanelDom = document.getElementById('operating-panel-dom');
+                settingsPanel = document.getElementById('settings-panel');
+                tankCapacityInput = document.getElementById('tank-capacity-input');
+                pumpFlowInput = document.getElementById('pump-flow-input');
+                pumpOnPercentageInput = document.getElementById('pump-on-percentage-input');
+                pumpOffPercentageInput = document.getElementById('pump-off-percentage-input');
+                saveSettingsBtn = document.getElementById('save-settings-btn');
+                cancelSettingsBtn = document.getElementById('cancel-settings-btn');
+
+
+                // Event Listeners for DOM elements
+                window.addEventListener('resize', onWindowResize, false); // Handle window resizing
+                
+                // Level slider event listener: updates water level based on slider percentage
+                levelSlider.addEventListener('input', onSliderChange);
+                
+                // Consumption slider event listener: updates consumption rate and its label
+                consumptionSlider.addEventListener('input', (event) => {
+                    currentConsumptionRateLPH = parseFloat(event.target.value);
+                    // NOTE: Although the label is "L/H", currentConsumptionRateLPH is interpreted
+                    // as the QUANTIDADE TOTAL de litros a ser consumida ao longo de um período de 10 segundos,
+                    // conforme a instrução atual do usuário. Esta quantidade será fracionada em 100 passos de 0.1s.
+                    consumptionLabel.textContent = `${currentConsumptionRateLPH.toFixed(0)} L/H`;
+
+                    // Logic to enable/disable the level slider based on consumption
+                    if (currentConsumptionRateLPH > 0) {
+                        levelSlider.disabled = true; // Disable level slider if there's consumption
+                    } else {
+                        levelSlider.disabled = false; // Enable level slider if consumption is zero
+                    }
+                });
+
+                // Info toggle button event listener
+                infoToggleButton.addEventListener('click', () => {
+                    areLabelsVisible = !areLabelsVisible; // Toggle label visibility state
+                    updateOperatingPanel(); // Re-render panel to update labels visibility
+                });
+
+                // Settings button event listener
+                settingsButton.addEventListener('click', () => {
+                    toggleSettingsPanel(true); // Show settings panel
+                });
+
+                // Save settings button listener
+                saveSettingsBtn.addEventListener('click', saveSettings);
+
+                // Cancel settings button listener
+                cancelSettingsBtn.addEventListener('click', () => {
+                    toggleSettingsPanel(false); // Hide settings panel without saving
+                });
+
+
+                // Fixed view button: disables 3D rotation and sets camera to a fixed view
+                document.getElementById('fixed-view-btn').addEventListener('click', () => toggleRotation(false));
+                // 3D rotation button: enables 3D rotation
+                document.getElementById('rotation-3d-btn').addEventListener('click', () => toggleRotation(true));
+                
+                // Mouse event listeners for tank dragging (when rotation is disabled)
+                renderer.domElement.addEventListener('mousedown', onMouseDown, false);
+                renderer.domElement.addEventListener('mousemove', onMouseMove, false);
+                renderer.domElement.addEventListener('mouseup', onMouseUp, false);
+                
+                // Initial update for water level based on the default slider value (50% for 1500L)
+                // Initialize currentTankPercentage here for the first time
+                currentTankPercentage = (currentTankVolumeLiters / MAX_CAPACITY_LITERS) * 100;
+                updateWaterLevel(currentTankPercentage.toString()); // Use the now defined currentTankPercentage
+                
+                // Set initial consumption rate and update its label (as per user request: 40 L/H default)
+                consumptionSlider.value = 40; // Set default value in JS to override HTML if needed
+                currentConsumptionRateLPH = parseFloat(consumptionSlider.value);
+                consumptionLabel.textContent = `${currentConsumptionRateLPH.toFixed(0)} L/H`;
+
+                // Set the initial state of the level slider based on initial consumption
+                levelSlider.disabled = (currentConsumptionRateLPH > 0);
+                
+                // Set initial view mode to FIXO (Fixed)
+                toggleRotation(false); 
+
+                animate(); // Start the animation loop
+            }
+
+            /**
+             * Creates the cylindrical water tank mesh.
+             */
+            function createWaterTank() {
+                const geometry = new THREE.CylinderGeometry(TANK_RADIUS, TANK_RADIUS, TANK_HEIGHT, 64, 1, true); // Open-ended cylinder
+                const material = new THREE.MeshStandardMaterial({
+                    color: 0x000000, // Dark color
+                    metalness: 0.2,
+                    roughness: 0.5,
+                    transparent: true,
+                    opacity: 0.25, // Semi-transparent
+                    side: THREE.DoubleSide, // Render both sides
+                    depthWrite: false // For proper transparency blending
+                });
+                waterTank = new THREE.Mesh(geometry, material);
+                waterTank.position.y = TANK_HEIGHT / 2; // Position so its base is at y=0
+                waterTank.castShadow = false; // Tank itself doesn't cast shadows (water does)
+                waterTank.renderOrder = 0; // Render before water
+                rootGroup.add(waterTank);
+            }
+
+            /**
+             * Creates the water mesh inside the tank.
+             */
+            function createWater() {
+                const material = new THREE.MeshStandardMaterial({
+                    color: 0x3B82F6, // Blue color for water
+                    roughness: 0.1,
+                    metalness: 0,
+                    transparent: true,
+                    opacity: 0.8, // Semi-transparent water
+                });
+                const geometry = new THREE.CylinderGeometry(TANK_RADIUS - 0.1, TANK_RADIUS - 0.1, TANK_HEIGHT, 64); // Slightly smaller radius than tank
+                water = new THREE.Mesh(geometry, material);
+                water.position.y = 0; // Initial position (will be adjusted)
+                water.castShadow = true; // Water casts shadows
+                water.renderOrder = 1; // Render after tank
+                waterTank.add(water); // Add water as a child of the tank for unified movement
+            }
+            
+            /**
+             * Creates the ultrasonic sensor at the top of the tank.
+             */
+            function createUltrasonicSensor() {
+                const sensorBodyGeometry = new THREE.CylinderGeometry(0.25, 0.25, 0.2, 32); // Small cylinder for sensor body
+                const sensorBodyMaterial = new THREE.MeshStandardMaterial({ color: 0x6B7280 }); // Gray color
+                ultrasonicSensor = new THREE.Mesh(sensorBodyGeometry, sensorBodyMaterial);
+                const adjustedLidHeight = TANK_HEIGHT * 0.05 * 1.7; // Approximate height of the lid
+                ultrasonicSensor.position.set(0, TANK_HEIGHT + adjustedLidHeight - 0.1, 0); // Position above the tank lid
+                ultrasonicSensor.castShadow = true; // Sensor casts shadows
+                rootGroup.add(ultrasonicSensor);
+            }
+
+            /**
+             * Creates the lid for the water tank.
+             */
+            function createWaterTankLid() {
+                const lidBaseRadius = TANK_RADIUS * LID_OVERHANG_FACTOR; // Larger radius than tank for overhang
+                const lidHeight = TANK_HEIGHT * 0.05 * 1.7; // Height of the lid
+                const lidTopRadius = lidBaseRadius * 0.4; // Tapered top for the lid
+
+                const lidMaterial = new THREE.MeshStandardMaterial({
+                    color: 0x000000, // Dark color
+                    metalness: 0.2,
+                    roughness: 0.5,
+                    transparent: true,
+                    opacity: 0.25, // Semi-transparent
+                    side: THREE.DoubleSide
+                });
+
+                const lidGeometry = new THREE.CylinderGeometry(lidTopRadius, lidBaseRadius, lidHeight, 64);
+                waterTankLid = new THREE.Mesh(lidGeometry, lidMaterial);
+                waterTankLid.position.y = TANK_HEIGHT + lidHeight / 2; // Position on top of the tank
+                waterTankLid.castShadow = true; // Lid casts shadows
+                rootGroup.add(waterTankLid);
+            }
+            
+            /**
+             * Creates the visual wave pulses emitted by the ultrasonic sensor.
+             */
+            function createWavePulses() {
+                for (let i = 0; i < NUM_WAVES; i++) {
+                    const geometry = new THREE.TorusGeometry(1, 0.05, 16, 100); // Torus (ring) shape for the wave
+                    const material = new THREE.MeshBasicMaterial({ 
+                        color: 0xFF0000, // Red color for waves
+                        transparent: true, 
+                        opacity: 0, // Starts invisible
+                        depthWrite: false // For proper blending
+                    });
+                    const wavePulse = new THREE.Mesh(geometry, material);
+                    wavePulse.rotation.x = Math.PI / 2; // Rotate to be horizontal
+                    wavePulse.visible = false; // Initially not visible
+                    wavePulses.push(wavePulse);
+                    rootGroup.add(wavePulse);
+                }
+            }
+            
+            /**
+             * Updates the content of the HTML operating panel.
+             * Displays pump status (ON/OFF), running/stopped time,
+             * consumption rate, and reservoir volume percentage and current liters.
+             */
+            function updateOperatingPanel() {
+                const operatingPanelDom = document.getElementById('operating-panel-dom');
+                if (!operatingPanelDom) return; // Sai se o elemento do painel não for encontrado
+
+                const currentTime = clock.getElapsedTime(); // Tempo decorrido atual na simulação
+                
+                // Use isPumpOn directly for system status
+                let isSystemOnNow = isPumpOn; 
+
+                // A lógica de falha foi removida, então o estado é apenas RUNNING ou STOPPED
+                let nextDetailedState;
+                if (!isSystemOnNow) { // Bomba está DESLIGADA
+                    nextDetailedState = 'STOPPED';
+                } else { // Bomba está LIGADA
+                    nextDetailedState = 'RUNNING';
+                }
+
+                // Reset time counters on state transition
+                if (nextDetailedState !== prevDetailedState) {
+                    if (nextDetailedState === 'RUNNING') {
+                        runningTime = 0;
+                    } else if (nextDetailedState === 'STOPPED') {
+                        stoppedTime = 0;
+                    }
+                }
+                
+                // Use the precise frameDeltaTime calculated in animate() for accurate time tracking
+                const currentFrameDeltaTime = (performance.now() - lastFrameTimestamp) / 1000;
+                if (nextDetailedState === 'RUNNING') {
+                    runningTime += currentFrameDeltaTime;
+                } else if (nextDetailedState === 'STOPPED') {
+                    stoppedTime += currentFrameDeltaTime;
+                }
+
+                prevDetailedState = nextDetailedState; // Armazena o estado atual como anterior para o próximo quadro
+                currentDetailedState = nextDetailedState; // Atualiza o estado atual global
+
+                operatingPanelDom.innerHTML = ''; // Limpa o conteúdo anterior
+
+                // Helper function to create a text line for the panel with optional label
+                // Label now appears on the left of the value
+                const createTextLine = (valueText, labelText = null, valueClassName = 'panel-value-text') => {
+                    const lineDiv = document.createElement('div');
+                    lineDiv.classList.add('panel-line');
+                    
+                    if (labelText) {
+                        const labelSpan = document.createElement('span');
+                        labelSpan.textContent = `${labelText}`; // Label text (no trailing space here)
+                        labelSpan.classList.add('panel-label-text'); 
+                        if (!areLabelsVisible) {
+                            labelSpan.classList.add('hidden'); // Hide by default based on state
+                        }
+                        lineDiv.appendChild(labelSpan);
+                    }
+
+                    const valueSpan = document.createElement('span');
+                    valueSpan.textContent = valueText;
+                    valueSpan.classList.add(valueClassName);
+                    lineDiv.appendChild(valueSpan);
+                    
+                    return lineDiv;
+                };
+
+                // 1. BOMBA ON / OFF Status
+                operatingPanelDom.appendChild(createTextLine(isSystemOnNow ? 'ON' : 'OFF', 'BOMBA:', isSystemOnNow ? 'panel-status-on' : 'panel-status-off'));
+
+                // 2. Tempo de Operação (ligado ou desligado)
+                let timeValue = '';
+                let timeLabel = '';
+                if (isPumpOn) {
+                    timeValue = `${Math.floor(runningTime)} MIN`;
+                    timeLabel = 'Tempo ligado:';
+                } else {
+                    timeValue = `${Math.floor(stoppedTime)} MIN`;
+                    timeLabel = 'Tempo desligado:';
+                }
+                operatingPanelDom.appendChild(createTextLine(timeValue, timeLabel));
+
+                // 3. Taxa de Consumo de Água
+                operatingPanelDom.appendChild(createTextLine(`${currentConsumptionRateLPH.toFixed(0)}L/H`, 'Consumo:'));
+
+                // 4. Volume do reservatório em porcentagem
+                // currentTankPercentage já está calculada no início do loop 'animate'
+                operatingPanelDom.appendChild(createTextLine(`${currentTankPercentage.toFixed(0)}%`, 'Volume:'));
+                
+                // 5. Volume atual do reservatório em Litros
+                operatingPanelDom.appendChild(createTextLine(`${currentTankVolumeLiters.toFixed(1)} L`, 'Atual:'));
+
+
+                // Adjust panel width based on content for proper alignment
+                const tempContext = document.createElement('canvas').getContext('2d');
+                tempContext.font = `bold 0.75rem 'Inter', sans-serif`;
+
+                let maxWidth = 0;
+                // Measure text including potential label space
+                const linesToMeasure = [
+                    (areLabelsVisible ? 'BOMBA: ' : '') + (isSystemOnNow ? 'ON' : 'OFF'),
+                    (areLabelsVisible ? timeLabel : '') + timeValue, // Use dynamic timeLabel here
+                    (areLabelsVisible ? 'Consumo: ' : '') + `${currentConsumptionRateLPH.toFixed(0)}L/H`,
+                    (areLabelsVisible ? 'Volume: ' : '') + `${currentTankPercentage.toFixed(0)}%`,
+                    (areLabelsVisible ? 'Atual: ' : '') + `${currentTankVolumeLiters.toFixed(1)} L`
+                ];
+
+                linesToMeasure.forEach(line => {
+                    const metrics = tempContext.measureText(line);
+                    if (metrics.width > maxWidth) {
+                        maxWidth = metrics.width;
+                    }
+                });
+
+                // Calculate total width including padding and border
+                const panelPaddingInPx = 0.8 * 16 * 2; // 0.8rem padding on each side, 16px/rem
+                const borderWidthInPx = 1 * 2; // 1px border on each side
+                operatingPanelDom.style.width = `${maxWidth + panelPaddingInPx + borderWidthInPx}px`;
+            }
+            
+            /**
+             * Updates the 3D water level visually and the volume display.
+             * The `percentage` parameter now represents the percentage of MAX_CAPACITY_LITERS,
+             * derived from `currentTankVolumeLiters`.
+             */
+            function updateWaterLevel(percentage) {
+                const clampedPercentage = parseFloat(percentage); // Ensure it's a number
+                const targetWaterHeight = (clampedPercentage / 100) * TANK_HEIGHT; // Calculate target height in 3D space
+                const percentNormalized = clampedPercentage / 100; // Porcentage normalizada (0-1)
+
+                // Adjust water mesh scale and position based on target height
+                if (targetWaterHeight > 0.01) { // Only show water if there's a significant amount
+                    water.scale.y = targetWaterHeight / TANK_HEIGHT;
+                    water.position.y = targetWaterHeight / 2 - (TANK_HEIGHT / 2); // Center water mesh correctly
+                    water.visible = true;
+                } else {
+                    water.visible = false; // Hide water if tank is empty
+                }
+            
+                // Interpolate water display color based on percentage
+                const finalColor = new THREE.Color();
+                if (percentNormalized <= 0.1) {
+                    finalColor.copy(COLOR_LOW); // Vermelho para muito baixo
+                } else if (percentNormalized > 0.1 && percentNormalized <= 0.5) {
+                    const alpha = (percentNormalized - 0.1) / (0.5 - 0.1);
+                    finalColor.copy(COLOR_LOW).lerp(COLOR_MID, alpha); // Transição de Vermelho para Amarelo
+                } else if (percentNormalized > 0.5 && percentNormalized <= 0.75) {
+                    const alpha = (percentNormalized - 0.5) / (0.75 - 0.5);
+                    finalColor.copy(COLOR_MID).lerp(COLOR_HIGH, alpha); // Transição de Amarelo para Verde
+                } else {
+                    finalColor.copy(COLOR_HIGH); // Verde para alto
+                }
+                
+                const volumeDisplay = document.getElementById('volume-display');
+                volumeDisplay.style.color = finalColor.getStyle(); // Aplica a cor ao texto do volume
+                
+                // Update the volume display text
+                volumeDisplay.textContent = `${currentTankVolumeLiters.toFixed(1)} L`;
+
+                updateOperatingPanel(); // Also update the DOM operating panel
+            }
+            
+            /**
+             * Event handler for when the level slider changes.
+             * Directly updates the `currentTankVolumeLiters` and then the visual water level.
+             * This function will only execute if the level slider is not disabled (i.e., consumption = 0).
+             */
+            function onSliderChange(event) {
+                // If the slider is disabled, it means consumption is active and manual change is not allowed.
+                if (levelSlider.disabled) {
+                    // The slider value will be programmatically updated by the consumption logic in the 'animate' loop.
+                    return; 
+                }
+                // When the user moves the slider (and it's not disabled),
+                // update currentTankVolumeLiters directly based on the percentage.
+                currentTankVolumeLiters = (parseFloat(event.target.value) / 100) * MAX_CAPACITY_LITERS;
+                updateWaterLevel(event.target.value); // Pass the new percentage to update visuals
+            }
+            
+            /**
+             * Toggles the OrbitControls rotation based on the 'enable' flag.
+             * If disabled, resets the camera to a fixed view.
+             */
+            function toggleRotation(enable) {
+                isRotationEnabled = enable;
+                controls.enabled = enable; // Enable/disable OrbitControls
+                if (!enable) {
+                    // Set fixed camera position and target
+                    camera.position.set(15.27, 10.99, 0.48);
+                    controls.target.set(-1.73, 4.68, 5.13);
+                    controls.update(); // Apply changes
+                }
+            }
+            
+            /**
+             * Event listener for when camera controls stop moving.
+             * Copies camera position and target to clipboard for debugging/configuration.
+             */
+            function onCameraControlsEnd() {
+                if (isRotationEnabled) {
+                    const cameraPos = camera.position;
+                    const cameraTarget = controls.target;
+                    const positionString = `Câmera Posição (x, y, z): ${cameraPos.x.toFixed(2)}, ${cameraPos.y.toFixed(2)}, ${cameraPos.z.toFixed(2)}; Câmera Target (x, y, z): ${cameraTarget.x.toFixed(2)}, ${cameraTarget.y.toFixed(2)}, ${cameraTarget.z.toFixed(2)}`;
+                    
+                    // Use a temporary textarea to copy to clipboard
+                    const el = document.createElement('textarea');
+                    el.value = positionString;
+                    document.body.appendChild(el);
+                    el.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(el);
+                    console.log('Copiado para área de transferência:', positionString);
+                }
+            }
+            
+            // Raycaster and mouse vector for picking objects (for tank dragging)
+            const raycaster = new THREE.Raycaster();
+            const mouse = new THREE.Vector2();
+            
+            /**
+             * Handles mouse down events for dragging the tank when rotation is disabled.
+             */
+            function onMouseDown(event) {
+                if (isRotationEnabled) return; // Only allow dragging if rotation is disabled
+            
+                // Calculate mouse position in normalized device coordinates (-1 to +1)
+                mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+                mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+            
+                raycaster.setFromCamera(mouse, camera); // Set raycaster from camera through mouse position
+            
+                // Check for intersections with the water tank
+                const intersects = raycaster.intersectObjects([waterTank], true);
+            
+                if (intersects.length > 0) {
+                    draggableObject = rootGroup; // The entire root group (tank, sensor, lid) is draggable
+                    isDraggingTank = true; // Set dragging flag
+                    
+                    dragStartScreenY = event.clientY; // Store initial mouse Y position
+                    tankInitialPosOnDrag.copy(draggableObject.position); // Store initial tank position
+            
+                    controls.enabled = false; // Disable orbit controls during drag
+                    renderer.domElement.style.cursor = 'grabbing'; // Change cursor style
+                }
+            }
+            
+            /**
+             * Handles mouse move events for dragging the tank.
+             */
+            function onMouseMove(event) {
+                if (!isDraggingTank || draggableObject === null) return; // Only proceed if dragging is active
+            
+                var currentScreenY = event.clientY; // Current mouse Y position
+                var deltaScreenY = currentScreenY - dragStartScreenY; // Change in Y since drag started
+            
+                // Adjust the rootGroup's Z position based on vertical mouse movement
+                // X and Y positions are kept fixed
+                draggableObject.position.x = tankInitialPosOnDrag.x;
+                draggableObject.position.y = tankInitialPosOnDrag.y;
+                draggableObject.position.z = tankInitialPosOnDrag.z + (deltaScreenY * VERTICAL_DRAG_WORLD_SCALE * DRAG_SENSITIVITY_FACTOR);
+            
+                // Log and copy the new tank position to clipboard
+                const currentTankPosition = draggableObject.position;
+                const positionString = `Posição da caixa d'água (x, y, z): ${currentTankPosition.x.toFixed(2)}, ${currentTankPosition.y.toFixed(2)}, ${currentTankPosition.z.toFixed(2)}`;
+                const el = document.createElement('textarea');
+                el.value = positionString;
+                document.body.appendChild(el);
+                el.select();
+                document.execCommand('copy');
+                document.body.removeChild(el);
+                console.log('Copiado para área de transferência:', positionString);
+            }
+            
+            /**
+             * Handles mouse up events, ending the tank dragging operation.
+             */
+            function onMouseUp() {
+                isDraggingTank = false; // Reset dragging flag
+                draggableObject = null; // Clear draggable object
+                controls.enabled = isRotationEnabled; // Restore orbit controls based on rotation state
+                renderer.domElement.style.cursor = 'grab'; // Restore cursor style
+            }
+
+            /**
+             * Toggles the visibility of the main UI elements and the settings panel.
+             * @param {boolean} showSettings - True to show settings panel, false to hide it.
+             */
+            function toggleSettingsPanel(showSettings) {
+                if (showSettings) {
+                    mainUiControls.style.display = 'none';
+                    topRightButtons.style.display = 'none';
+                    operatingPanelDom.style.display = 'none';
+                    infoToggleButton.style.display = 'none';
+                    settingsPanel.style.display = 'flex';
+
+                    // Populate settings inputs with current values
+                    tankCapacityInput.value = MAX_CAPACITY_LITERS;
+                    pumpFlowInput.value = PUMP_RATE_FOR_10S_SIMULATION; // Value as L/10s total
+                    pumpOnPercentageInput.value = PUMP_ACTIVATION_THRESHOLD_PERCENTAGE;
+                    pumpOffPercentageInput.value = PUMP_DEACTIVATION_THRESHOLD_PERCENTAGE;
+
+                    // Clear previous error messages
+                    document.getElementById('tank-capacity-error').textContent = '';
+                    document.getElementById('pump-flow-error').textContent = '';
+                    document.getElementById('pump-on-percentage-error').textContent = '';
+                    document.getElementById('pump-off-percentage-error').textContent = '';
+
+                } else {
+                    mainUiControls.style.display = 'flex';
+                    topRightButtons.style.display = 'flex';
+                    operatingPanelDom.style.display = 'flex';
+                    infoToggleButton.style.display = 'flex'; // Info button always visible with main UI
+                    settingsPanel.style.display = 'none';
+                }
+            }
+
+            /**
+             * Saves the settings from the input fields and updates global variables.
+             */
+            function saveSettings() {
+                let isValid = true;
+                let newMaxCapacity = parseInt(tankCapacityInput.value);
+                let newPumpFlow = parseFloat(pumpFlowInput.value);
+                let newPumpOnPercentage = parseFloat(pumpOnPercentageInput.value);
+                let newPumpOffPercentage = parseFloat(pumpOffPercentageInput.value);
+
+                // Clear previous errors
+                document.getElementById('tank-capacity-error').textContent = '';
+                document.getElementById('pump-flow-error').textContent = '';
+                document.getElementById('pump-on-percentage-error').textContent = '';
+                document.getElementById('pump-off-percentage-error').textContent = '';
+
+                // Validate Tank Capacity
+                if (isNaN(newMaxCapacity) || newMaxCapacity <= 0) {
+                    document.getElementById('tank-capacity-error').textContent = 'Capacidade deve ser um número inteiro positivo.';
+                    isValid = false;
+                }
+
+                // Validate Pump Flow
+                if (isNaN(newPumpFlow) || newPumpFlow < 0) {
+                    document.getElementById('pump-flow-error').textContent = 'Taxa de fluxo deve ser um número positivo.';
+                    isValid = false;
+                }
+
+                // Validate Pump On Percentage
+                if (isNaN(newPumpOnPercentage) || newPumpOnPercentage < 0 || newPumpOnPercentage > 100) {
+                    document.getElementById('pump-on-percentage-error').textContent = 'Porcentagem deve ser entre 0 e 100.';
+                    isValid = false;
+                }
+
+                // Validate Pump Off Percentage
+                if (isNaN(newPumpOffPercentage) || newPumpOffPercentage < 0 || newPumpOffPercentage > 100) {
+                    document.getElementById('pump-off-percentage-error').textContent = 'Porcentagem deve ser entre 0 e 100.';
+                    isValid = false;
+                }
+
+                if (!isValid) {
+                    return; // Stop if any validation fails
+                }
+
+                // Store current percentage before changing max capacity
+                const oldMaxCapacity = MAX_CAPACITY_LITERS;
+                const currentVolumeRatio = currentTankVolumeLiters / oldMaxCapacity;
+
+                // Update global variables
+                MAX_CAPACITY_LITERS = newMaxCapacity;
+                PUMP_RATE_FOR_10S_SIMULATION = newPumpFlow; // Assuming UI input is already total L/10s based on previous interpretation
+                PUMP_ACTIVATION_THRESHOLD_PERCENTAGE = newPumpOnPercentage;
+                PUMP_DEACTIVATION_THRESHOLD_PERCENTAGE = newPumpOffPercentage;
+
+                // Adjust current volume based on new max capacity, maintaining relative level
+                currentTankVolumeLiters = currentVolumeRatio * MAX_CAPACITY_LITERS;
+                // Ensure current volume does not exceed new max capacity
+                if (currentTankVolumeLiters > MAX_CAPACITY_LITERS) {
+                    currentTankVolumeLiters = MAX_CAPACITY_LITERS;
+                }
+                
+                // If the new current volume is 0 and consumption is active, disable level slider
+                levelSlider.disabled = (currentConsumptionRateLPH > 0);
+
+                // Update UI elements
+                updateWaterLevel((currentTankVolumeLiters / MAX_CAPACITY_LITERS * 100).toString()); // Update 3D and display
+                consumptionLabel.textContent = `${currentConsumptionRateLPH.toFixed(0)} L/H`; // Refresh consumption label
+
+                toggleSettingsPanel(false); // Hide settings and show main UI
+            }
+            
+            /**
+             * Main animation loop. Updates water consumption, pump logic, wave pulses, and renders the scene.
+             */
+            function animate() {
+                requestAnimationFrame(animate); // Request next animation frame
+                
+                const elapsedTime = clock.getElapsedTime(); // Total time elapsed since clock started
+                const pulseDuration = 1.5; // Duration for one wave pulse cycle
+                
+                // Calculate frameDeltaTime using performance.now() for precise timing
+                const now = performance.now();
+                const frameDeltaTime = (now - lastFrameTimestamp) / 1000; // Convert ms to seconds
+                lastFrameTimestamp = now; // Update timestamp for the next frame
+
+                // Calculate currentTankPercentage here, unconditionally, so it's always defined.
+                currentTankPercentage = (currentTankVolumeLiters / MAX_CAPACITY_LITERS) * 100;
+
+
+                // --- Lógica da Bomba de Enchimento ---
+                const pumpActivationVolume = (PUMP_ACTIVATION_THRESHOLD_PERCENTAGE / 100) * MAX_CAPACITY_LITERS;
+                const pumpDeactivationVolume = (PUMP_DEACTIVATION_THRESHOLD_PERCENTAGE / 100) * MAX_CAPACITY_LITERS;
+
+                // Ativação da bomba
+                if (currentTankVolumeLiters < pumpActivationVolume && !isPumpOn) {
+                    isPumpOn = true;
+                    // console.log(`BOMBA LIGADA: Volume (${currentTankVolumeLiters.toFixed(1)}L) abaixo de ${PUMP_ACTIVATION_THRESHOLD_PERCENTAGE}% (${pumpActivationVolume.toFixed(1)}L).`);
+                }
+                // Desativação da bomba
+                else if (currentTankVolumeLiters >= pumpDeactivationVolume && isPumpOn) {
+                    isPumpOn = false;
+                    currentTankVolumeLiters = MAX_CAPACITY_LITERS; // Garante que não ultrapasse 100%
+                    // console.log(`BOMBA DESLIGADA: Reservatório cheio (${currentTankVolumeLiters.toFixed(1)}L - 100%).`);
+                }
+
+                // Ação de enchimento da bomba
+                if (isPumpOn) {
+                    // Usa o mesmo acumulador para passos de enchimento
+                    consumptionAccumulator100ms += frameDeltaTime;
+                    while (consumptionAccumulator100ms >= CONSUMPTION_STEP_INTERVAL_SECONDS) {
+                        // O PUMP_RATE_FOR_10S_SIMULATION é a quantidade total para 10 segundos,
+                        // então dividimos por 100 (10 segundos / 0.1 segundos por passo)
+                        const addedLitersThisStep = PUMP_RATE_FOR_10S_SIMULATION / 100;
+                        currentTankVolumeLiters += addedLitersThisStep;
+                        // console.log("BOMBA ENCHENDO: Adicionado", addedLitersThisStep.toFixed(2), "L. Novo volume:", currentTankVolumeLiters.toFixed(2));
+                        consumptionAccumulator100ms -= CONSUMPTION_STEP_INTERVAL_SECONDS;
+                    }
+                }
+                // Garante que o volume não ultrapasse a capacidade máxima (mesmo com consumo ativo)
+                if (currentTankVolumeLiters > MAX_CAPACITY_LITERS) {
+                    currentTankVolumeLiters = MAX_CAPACITY_LITERS;
+                }
+
+
+                // === Lógica de Consumo de Água ===
+                // Consome água apenas se a taxa de consumo for maior que 0
+                // E o tanque não estiver vazio.
+                if (currentConsumptionRateLPH > 0 && currentTankVolumeLiters > 0) {
+                    // Se a bomba também estiver ligada, o acumulador já estará sendo incrementado.
+                    // Se a bomba estiver desligada e o consumo for ativo, precisamos acumular.
+                    if (!isPumpOn) { // Só acumula se a bomba não estiver ativa e, portanto, não houver outra fonte de acumulação.
+                        consumptionAccumulator100ms += frameDeltaTime;
+                    }
+                    
+                    // Processa etapas de consumo se tempo suficiente tiver sido acumulado
+                    // O usuário quer o consumo total em 10 segundos, fracionado em 100 passos.
+                    // Isso significa que cada passo ocorre a cada 0.1 segundos (10s / 100 passos).
+                    while (consumptionAccumulator100ms >= CONSUMPTION_STEP_INTERVAL_SECONDS) {
+                        // Calcula os litros a serem consumidos para ESTA etapa de 0.1 segundo.
+                        // `currentConsumptionRateLPH` é a QUANTIDADE TOTAL a ser consumida ao longo de 10 segundos.
+                        // Portanto, cada etapa consome (Total L / 100).
+                        const consumedLitersThisStep = currentConsumptionRateLPH / 100; 
+
+                        currentTankVolumeLiters -= consumedLitersThisStep; // Subtrai do volume total
+                        // console.log("CONSUMO: Subtraído", consumedLitersThisStep.toFixed(2), "L. Novo volume:", currentTankVolumeLiters.toFixed(2));
+
+                        // Garante que o nível da água não caia abaixo de 0
+                        if (currentTankVolumeLiters <= 0) {
+                            currentTankVolumeLiters = 0; // Limita o volume a 0
+                            currentConsumptionRateLPH = 0; // Para o consumo se o tanque estiver vazio
+                            consumptionSlider.value = 0; // Reseta o slider de consumo
+                            consumptionLabel.textContent = `0 L/H`; // Atualiza o rótulo imediatamente
+                            levelSlider.disabled = false; // Re-habilita o slider de nível quando o consumo para
+                            // console.log("TANQUE VAZIO: Consumo parado.");
+                        }
+
+                        consumptionAccumulator100ms -= CONSUMPTION_STEP_INTERVAL_SECONDS; // Subtract the processed interval
+                    }
+                } else {
+                    // Se o consumo for 0 ou o tanque estiver vazio e a bomba não estiver ativa, reseta o acumulador.
+                    // Se a bomba estiver ativa, o acumulador é usado por ela.
+                    if (!isPumpOn) {
+                        consumptionAccumulator100ms = 0;
+                    }
+                }
+
+                // Sempre atualiza o slider de nível e o modelo de água 3D com base no currentTankVolumeLiters.
+                // Isso garante consistência visual mesmo que os loops de consumo/bomba não tenham rodado ou tenham acabado de terminar.
+                // currentTankPercentage já está calculada no início do loop.
+                levelSlider.value = currentTankPercentage;
+                updateWaterLevel(currentTankPercentage.toString());
+
+
+                // === Animação de Pulsos de Onda ===
+                // Recalcula a porcentagem atual da água e a altura alvo para a animação da onda
+                const targetWaterHeight = (currentTankPercentage / 100) * TANK_HEIGHT;
+                
+                for (let i = 0; i < NUM_WAVES; i++) {
+                    const wavePulse = wavePulses[i];
+                    const offset = i * (pulseDuration / NUM_WAVES); // Escalonar o início de cada onda
+                    const pulseProgress = ((elapsedTime + offset) % pulseDuration) / pulseDuration; // Progresso da onda atual (0 a 1)
+                    
+                    if (targetWaterHeight > 0.1) { // Só mostra ondas se houver água
+                        wavePulse.visible = true;
+                        
+                        // Calcula as posições Y inicial e final para o pulso de onda
+                        const startY = ultrasonicSensor.position.y; // Posição do sensor
+                        const endY = waterTank.position.y - (TANK_HEIGHT / 2) + targetWaterHeight; // Posição da superfície da água
+                        
+                        // Move o pulso de onda do sensor para a superfície da água
+                        wavePulse.position.y = startY - pulseProgress * (startY - endY);
+            
+                        // Escala o pulso de onda (aumenta à medida que viaja para baixo)
+                        const maxScale = (startY - endY) * 0.4; // Escala máxima em relação à distância percorrida
+                        const currentScale = pulseProgress * maxScale;
+                        if (currentScale > 0) {
+                            wavePulse.scale.set(currentScale, currentScale, currentScale);
+                        }
+            
+                        // Diminui e aumenta a opacidade do pulso de onda usando uma onda senoidal para opacidade
+                        wavePulse.material.opacity = Math.sin(pulseProgress * Math.PI);
+                    } else {
+                        // Oculta e reseta as ondas se não houver água
+                        wavePulse.visible = false;
+                        wavePulse.scale.set(0, 0, 0);
+                    }
+                }
+                
+                updateOperatingPanel(); // Atualiza o painel de operação HTML a cada quadro
+
+                // Atualiza os controles apenas se não estiver arrastando o tanque
+                if (!isDraggingTank) { 
+                    controls.update(); 
+                }
+                renderer.render(scene, camera); // Renderiza a cena
+            }
+            
+            /**
+             * Handles window resize events to keep the canvas responsive.
+             */
+            function onWindowResize() {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            }
+            
+            init(); // Call the init function to start the application
+        }; // End of window.onload
+    </script>
+</body>
+</html>
