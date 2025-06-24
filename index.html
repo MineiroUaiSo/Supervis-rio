@@ -111,6 +111,17 @@
             background: linear-gradient(to bottom, rgba(165, 180, 252, 0.7), rgba(99, 102, 241, 0.7));
             border-radius: 50%;
         }
+
+        /* Bubble Styles - No keyframes here, controlled by JS */
+        .bubble {
+            position: absolute;
+            background-color: rgba(255, 255, 255, 0.4);
+            border-radius: 50%;
+            bottom: 0; /* Starts at the bottom of the water container */
+            pointer-events: none; /* Bubbles should not interfere with clicks */
+            z-index: 5; /* Below water surface (z-10), above water body */
+            transform: translateX(-50%); /* Centers the bubble horizontally based on its left position */
+        }
     </style>
 </head>
 <body class="bg-[#1a103c]">
@@ -170,6 +181,8 @@
                                      <div class="relative w-full h-full">
                                          <div id="water-surface" class="water-surface absolute top-0 left-0 right-0"></div>
                                          <div class="water-body absolute top-[18px] bottom-0 left-0 right-0"></div>
+                                         <!-- New Bubble Container Here -->
+                                         <div id="bubble-container" class="absolute inset-0 overflow-hidden"></div>
                                      </div>
                                  </div>
                             </div>
@@ -306,105 +319,40 @@
             const rotarySwitchLabels = document.querySelectorAll('.rotary-switch-label');
             const modeDisplay = document.getElementById('mode-display');
             const wavePulseContainer = document.getElementById('wave-pulse-container');
-            const menuOverlay = document.getElementById('menu-overlay'); // New overlay element
+            const menuOverlay = document.getElementById('menu-overlay');
+            const bubbleContainer = document.getElementById('bubble-container');
 
             // --- VARIÁVEIS DE SIMULAÇÃO ---
             let MAX_CAPACITY_LITERS = 3000;
-            let PUMP_RATE_LPH = 1500; // Alterado para 1500 L/H
+            let PUMP_RATE_LPH = 1500;
             let PUMP_ACTIVATION_THRESHOLD_PERCENTAGE = 75;
             let PUMP_DEACTIVATION_THRESHOLD_PERCENTAGE = 100;
 
-            let currentTankVolumeLiters = MAX_CAPACITY_LITERS * 0.50; // 50% da capacidade
+            let currentTankVolumeLiters; // Defined in init
             let currentConsumptionRateLPH = 40;
             let isPumpOn = false;
-            let pumpControlMode = 'AUTO'; // Alterado para AUTO
+            let pumpControlMode; // Defined in init
 
             let areLabelsVisible = false;
-            let runningTimeSeconds = 0;
-            let stoppedTimeSeconds = 0;
+            let runningTimeSeconds; // Defined in init
+            let stoppedTimeSeconds; // Defined in init
 
             let lastTimestamp = 0;
-            let timeAccumulator = 0; // Acumula tempo para atualizações de 100ms
+            let timeAccumulator = 0;
 
             let pendingModeChange = null;
 
-            // Global variable to store the current visual angle of the handle
             let currentHandleAngle = 0;
             let animationFrameId = null;
+            let bubbleGenerationInterval = null;
 
-            // Map modes to their angles
             const modeAngles = {
-                'OFF': 0,    // Top position (0 degrees is up for our visual)
-                'AUTO': 240, // Bottom-left position (8 o'clock equivalent)
-                'MANUAL': 120 // Bottom-right position (4 o'clock equivalent)
+                'OFF': 0,
+                'AUTO': 240,
+                'MANUAL': 120
             };
 
-            // --- FUNÇÕES DE LÓGICA ---
-
-            function updateSimulation(deltaTime) {
-                // deltaTime está em segundos
-                const simTimeFactor = 360;
-
-                // Armazena o estado atual da bomba antes de calcular o novo estado
-                let oldIsPumpOn = isPumpOn;
-
-                // Lógica da Bomba para determinar o novo estado
-                switch (pumpControlMode) {
-                    case 'AUTO':
-                        const currentPercentage = (currentTankVolumeLiters / MAX_CAPACITY_LITERS) * 100;
-                        if (currentPercentage < PUMP_ACTIVATION_THRESHOLD_PERCENTAGE) {
-                            isPumpOn = true; // Ligar se o nível estiver abaixo do limite de ativação
-                        } else if (currentPercentage >= PUMP_DEACTIVATION_THRESHOLD_PERCENTAGE) {
-                            isPumpOn = false; // Desligar se o nível estiver acima ou igual ao limite de desativação
-                        }
-                        // Se estiver entre os limites, a bomba mantém seu estado atual (isPumpOn não é alterado)
-                        break;
-                    case 'MANUAL':
-                        isPumpOn = true; // Sempre ligada no modo manual
-                        break;
-                    case 'OFF':
-                        isPumpOn = false; // Sempre desligada no modo off
-                        break;
-                }
-
-                // Detectar mudança de estado e zerar os contadores de tempo
-                if (isPumpOn !== oldIsPumpOn) {
-                    if (isPumpOn) { // Bomba acabou de ligar
-                        stoppedTimeSeconds = 0; // Zera o contador de tempo desligado
-                    } else { // Bomba acabou de desligar
-                        runningTimeSeconds = 0; // Zera o contador de tempo ligado
-                    }
-                }
-
-                // Atualizar volume e acumular tempo com base no estado final da bomba para este frame
-                if (isPumpOn) {
-                    currentTankVolumeLiters += (PUMP_RATE_LPH / 3600) * deltaTime * simTimeFactor;
-                    runningTimeSeconds += deltaTime * simTimeFactor;
-                } else {
-                    stoppedTimeSeconds += deltaTime * simTimeFactor;
-                }
-
-                // O consumo de água sempre se aplica, independentemente do estado da bomba
-                currentTankVolumeLiters -= (currentConsumptionRateLPH / 3600) * deltaTime * simTimeFactor;
-
-                // Limites para o volume da água
-                if (currentTankVolumeLiters > MAX_CAPACITY_LITERS) {
-                    currentTankVolumeLiters = MAX_CAPACITY_LITERS;
-                }
-                if (currentTankVolumeLiters < 0) {
-                    currentTankVolumeLiters = 0;
-                }
-
-                // Desabilitar slider de nível se houver consumo ativo
-                if (currentConsumptionRateLPH > 0) {
-                    levelSlider.disabled = true;
-                } else {
-                    levelSlider.disabled = false;
-                }
-            }
-
-            // --- FUNÇÕES DE ATUALIZAÇÃO DA UI ---
-
+            // --- FUNÇÕES DE ATUALIZAÇÃO DA UI (move para cima para serem definidas antes de init) ---
             function updateWaterLevel() {
                 const percentage = (currentTankVolumeLiters / MAX_CAPACITY_LITERS) * 100;
 
@@ -416,13 +364,12 @@
                     levelSlider.value = percentage;
                 }
 
-                // Mudar cor do volume com base na porcentagem
                 if (percentage < 25) {
-                    volumeDisplay.style.color = '#f87171'; // red-400
+                    volumeDisplay.style.color = '#f87171';
                 } else if (percentage < 75) {
-                    volumeDisplay.style.color = '#facc15'; // yellow-400
+                    volumeDisplay.style.color = '#facc15';
                 } else {
-                    volumeDisplay.style.color = '#4ade80'; // green-400
+                    volumeDisplay.style.color = '#4ade80';
                 }
             }
 
@@ -462,37 +409,28 @@
                 `;
             }
 
-            // Function to update the visual of the rotary switch handle
             function updateRotarySwitchVisual(newMode, oldMode) {
                 const targetAngle = modeAngles[newMode];
                 const startAngle = currentHandleAngle;
 
-                // Cancel any ongoing animation
                 if (animationFrameId) {
                     cancelAnimationFrame(animationFrameId);
                 }
 
                 let delta;
 
-                // Special handling for transitions between AUTO and MANUAL (passing through OFF)
                 if (oldMode === 'AUTO' && newMode === 'MANUAL') {
-                    // From AUTO (240deg) to MANUAL (120deg) - Force clockwise through OFF (0deg)
-                    // Calculate clockwise distance from startAngle to 0, then from 0 to targetAngle
                     let angleFromStartToOff = (modeAngles['OFF'] - startAngle + 360) % 360;
                     let angleFromOffToTarget = (targetAngle - modeAngles['OFF'] + 360) % 360;
                     delta = angleFromStartToOff + angleFromOffToTarget;
 
                 } else if (oldMode === 'MANUAL' && newMode === 'AUTO') {
-                    // From MANUAL (120deg) to AUTO (240deg) - Force counter-clockwise through OFF (0deg)
-                    // Calculate counter-clockwise distance from startAngle to 0, then from 0 to targetAngle
                     let angleFromStartToOff = (startAngle - modeAngles['OFF'] + 360) % 360;
                     let angleFromOffToTarget = (modeAngles['OFF'] - targetAngle + 360) % 360;
                     delta = -(angleFromStartToOff + angleFromOffToTarget);
 
                 } else {
-                    // For all other transitions (to/from OFF), use the shortest path
                     delta = targetAngle - startAngle;
-                    // Normalize delta to be the shortest path (-180 to 180 degrees)
                     if (delta > 180) {
                         delta -= 360;
                     } else if (delta < -180) {
@@ -500,27 +438,21 @@
                     }
                 }
 
-                // Animation parameters
-                const duration = 300; // milliseconds for smooth transition
+                const duration = 300;
                 const startTime = performance.now();
                 const initialAngle = currentHandleAngle;
 
                 function animateRotation(currentTime) {
                     const elapsedTime = currentTime - startTime;
-                    const progress = Math.min(elapsedTime / duration, 1); // Clamp progress between 0 and 1
-
-                    // Easing function (EaseInOutQuad)
+                    const progress = Math.min(elapsedTime / duration, 1);
                     const easedProgress = progress < 0.5 ? 2 * progress * progress : 1 - Math.pow(-2 * progress + 2, 2) / 2;
 
                     currentHandleAngle = initialAngle + (delta * easedProgress);
-
-                    // Apply rotation
                     rotarySwitchHandle.style.transform = `translate(-50%, -100%) rotate(${currentHandleAngle}deg)`;
 
                     if (progress < 1) {
                         animationFrameId = requestAnimationFrame(animateRotation);
                     } else {
-                        // Ensure the final angle is exactly the target angle to prevent floating point issues
                         currentHandleAngle = targetAngle;
                         rotarySwitchHandle.style.transform = `translate(-50%, -100%) rotate(${currentHandleAngle}deg)`;
                         animationFrameId = null;
@@ -529,26 +461,90 @@
 
                 animationFrameId = requestAnimationFrame(animateRotation);
 
-                // Update active label visual
                 rotarySwitchLabels.forEach(l => l.classList.remove('active'));
                 const activeLabel = document.querySelector(`.rotary-switch-label[data-mode="${newMode}"]`);
                 if (activeLabel) {
                     activeLabel.classList.add('active');
                 }
 
-                // Update mode display text and color
                 modeDisplay.textContent = newMode;
-                if (newMode === 'AUTO') modeDisplay.style.color = '#60a5fa'; // blue-400
-                else if (newMode === 'MANUAL') modeDisplay.style.color = '#facc15'; // yellow-400
-                else modeDisplay.style.color = '#f87171'; // red-400
+                if (newMode === 'AUTO') modeDisplay.style.color = '#60a5fa';
+                else if (newMode === 'MANUAL') modeDisplay.style.color = '#facc15';
+                else modeDisplay.style.color = '#f87171';
             }
 
+            // --- FUNÇÕES DE GERAÇÃO DE BOLHAS ---
+            function createBubble() {
+                const bubble = document.createElement('div');
+                bubble.className = 'bubble';
+
+                const size = Math.random() * 8 + 2; // 2px to 10px
+                bubble.style.width = `${size}px`;
+                bubble.style.height = `${size}px`;
+
+                const waterContainerRect = waterContainer.getBoundingClientRect();
+                const randomLeft = Math.random() * (waterContainerRect.width - size);
+                bubble.style.left = `${randomLeft}px`;
+
+                // Calculate the target translateY based on the current water height
+                const waterHeight = waterContainer.offsetHeight; // Get current height of water fill
+                // The bubble starts at bottom:0 of waterContainer, so it needs to travel up by waterHeight
+                const targetTranslateY = -waterHeight;
+
+                const duration = Math.random() * 3 + 2; // 2 to 5 seconds
+                const startTime = performance.now();
+
+                function animateBubble(currentTime) {
+                    const elapsedTime = currentTime - startTime;
+                    const progress = Math.min(elapsedTime / (duration * 1000), 1); // Convert duration to milliseconds
+
+                    // Linear movement up
+                    const currentY = progress * targetTranslateY;
+                    
+                    // Fade out as it approaches the surface
+                    const opacity = 0.5 * (1 - progress);
+                    
+                    // Scale down slightly as it fades
+                    const scale = 0.5 + (1 - progress) * 0.5; // Starts at 0.5, ends at 0.5
+
+                    bubble.style.transform = `translateX(-50%) translateY(${currentY}px) scale(${scale})`;
+                    bubble.style.opacity = opacity;
+
+                    if (progress < 1) {
+                        requestAnimationFrame(animateBubble);
+                    } else {
+                        bubble.remove(); // Remove when animation is complete
+                    }
+                }
+                requestAnimationFrame(animateBubble);
+                
+                bubbleContainer.appendChild(bubble);
+            }
+
+            function startBubbleGeneration() {
+                if (bubbleGenerationInterval === null) {
+                    bubbleGenerationInterval = setInterval(() => {
+                        if (currentTankVolumeLiters > 0) {
+                            createBubble();
+                        } else {
+                            stopBubbleGeneration();
+                        }
+                    }, 300);
+                }
+            }
+
+            function stopBubbleGeneration() {
+                if (bubbleGenerationInterval !== null) {
+                    clearInterval(bubbleGenerationInterval);
+                    bubbleGenerationInterval = null;
+                }
+            }
+            
             function animateWavePulse() {
                 const pulse = document.createElement('div');
                 pulse.className = 'wave-pulse';
                 wavePulseContainer.appendChild(pulse);
 
-                // O ponto final da animação é o topo da elipse da superfície da água
                 const waterSurfaceY = waterSurface.getBoundingClientRect().top - wavePulseContainer.getBoundingClientRect().top;
                 const duration = 1000;
 
@@ -564,6 +560,63 @@
                     if (pulse) pulse.remove();
                 }, duration);
             }
+
+            // --- FUNÇÕES DE LÓGICA ---
+            function updateSimulation(deltaTime) {
+                const simTimeFactor = 360;
+                let oldIsPumpOn = isPumpOn;
+
+                switch (pumpControlMode) {
+                    case 'AUTO':
+                        const currentPercentage = (currentTankVolumeLiters / MAX_CAPACITY_LITERS) * 100;
+                        if (currentPercentage < PUMP_ACTIVATION_THRESHOLD_PERCENTAGE) {
+                            isPumpOn = true;
+                        } else if (currentPercentage >= PUMP_DEACTIVATION_THRESHOLD_PERCENTAGE) {
+                            isPumpOn = false;
+                        }
+                        break;
+                    case 'MANUAL':
+                        isPumpOn = true;
+                        break;
+                    case 'OFF':
+                        isPumpOn = false;
+                        break;
+                }
+
+                if (isPumpOn !== oldIsPumpOn) {
+                    if (isPumpOn) {
+                        stoppedTimeSeconds = 0;
+                    } else {
+                        runningTimeSeconds = 0;
+                    }
+                }
+
+                if (isPumpOn) {
+                    currentTankVolumeLiters += (PUMP_RATE_LPH / 3600) * deltaTime * simTimeFactor;
+                    runningTimeSeconds += deltaTime * simTimeFactor;
+                } else {
+                    stoppedTimeSeconds += deltaTime * simTimeFactor;
+                }
+
+                currentTankVolumeLiters -= (currentConsumptionRateLPH / 3600) * deltaTime * simTimeFactor;
+
+                if (currentTankVolumeLiters > MAX_CAPACITY_LITERS) {
+                    currentTankVolumeLiters = MAX_CAPACITY_LITERS;
+                }
+                if (currentTankVolumeLiters < 0) {
+                    currentTankVolumeLiters = 0;
+                    stopBubbleGeneration();
+                } else if (currentTankVolumeLiters > 0 && bubbleGenerationInterval === null) {
+                    startBubbleGeneration();
+                }
+
+                if (currentConsumptionRateLPH > 0) {
+                    levelSlider.disabled = true;
+                } else {
+                    levelSlider.disabled = false;
+                }
+            }
+
 
             // --- FUNÇÕES DE UI E EVENTOS ---
 
@@ -600,7 +653,6 @@
                 const on = parseInt(inputs.on.value, 10);
                 const off = parseInt(inputs.off.value, 10);
 
-                // Lógica de validação
                 function showError(input, message) {
                     const errorEl = input.nextElementSibling;
                     errorEl.textContent = message;
@@ -634,7 +686,6 @@
 
             function requestModeChange(newMode) {
                 if (newMode === pumpControlMode) return;
-                // Store the current mode as the previous mode before setting pending
                 pendingModeChange = newMode;
                 confirmationMessage.textContent = `Confirmar a troca de ${pumpControlMode} para ${newMode}?`;
                 confirmationModal.classList.remove('hidden');
@@ -642,9 +693,9 @@
 
             function confirmModeChange() {
                 if (pendingModeChange) {
-                    const oldModeForVisual = pumpControlMode; // This is the mode before updating pumpControlMode
-                    pumpControlMode = pendingModeChange; // Update the actual pumpControlMode
-                    updateRotarySwitchVisual(pumpControlMode, oldModeForVisual); // Pass both new and old modes
+                    const oldModeForVisual = pumpControlMode;
+                    pumpControlMode = pendingModeChange;
+                    updateRotarySwitchVisual(pumpControlMode, oldModeForVisual);
                 }
                 closeModal();
             }
@@ -660,18 +711,16 @@
                 if (!lastTimestamp) {
                     lastTimestamp = timestamp;
                 }
-                const deltaTime = (timestamp - lastTimestamp) / 1000; // em segundos
+                const deltaTime = (timestamp - lastTimestamp) / 1000;
                 lastTimestamp = timestamp;
 
                 timeAccumulator += deltaTime;
 
-                // Atualizar a lógica da simulação em intervalos fixos para estabilidade
                 while (timeAccumulator >= 0.05) {
                     updateSimulation(0.05);
                     timeAccumulator -= 0.05;
                 }
 
-                // Atualizar a UI em cada quadro
                 updateWaterLevel();
                 updateOperatingPanel();
 
@@ -702,7 +751,7 @@
             settingsBtn.addEventListener('click', () => toggleSettingsPanel(true));
             saveSettingsBtn.addEventListener('click', () => {
                 validateAndSaveSettings();
-                if (!document.querySelector('.error-message').textContent) { // Only close if no errors
+                if (!document.querySelector('.error-message').textContent) {
                     toggleSettingsPanel(false);
                 }
             });
@@ -722,19 +771,21 @@
             // --- INICIALIZAÇÃO ---
             function init() {
                 // Configurações iniciais
-                currentTankVolumeLiters = MAX_CAPACITY_LITERS * 0.50; // 50% da capacidade
-                pumpControlMode = 'AUTO'; // Chave trifásica em AUTO
-                runningTimeSeconds = 0; // Bomba começa a 0 minutos ligada
-                stoppedTimeSeconds = 0; // Bomba começa a 0 minutos desligada
+                currentTankVolumeLiters = MAX_CAPACITY_LITERS * 0.50;
+                pumpControlMode = 'AUTO';
+                runningTimeSeconds = 0;
+                stoppedTimeSeconds = 0;
 
                 updateWaterLevel();
                 updateOperatingPanel();
-                // Initialize currentHandleAngle based on the default pumpControlMode
+                
                 currentHandleAngle = modeAngles[pumpControlMode];
                 rotarySwitchHandle.style.transform = `translate(-50%, -100%) rotate(${currentHandleAngle}deg)`;
                 
-                updateRotarySwitchVisual(pumpControlMode, pumpControlMode); // Set initial visual state
+                updateRotarySwitchVisual(pumpControlMode, pumpControlMode);
+                
                 setInterval(animateWavePulse, 250);
+                startBubbleGeneration();
                 requestAnimationFrame(mainLoop);
             }
 
