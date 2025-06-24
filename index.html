@@ -127,6 +127,7 @@
             </button>
 
             <!-- Operating Panel -->
+            <!-- z-index increased to ensure it's on top -->
             <div id="operating-panel-container" class="flex flex-col items-end space-y-1 z-20">
                  <div id="operating-panel" class="p-2 sm:p-3 panel w-36 sm:w-48 text-right">
                     <!-- Conteúdo dinâmico aqui -->
@@ -138,11 +139,12 @@
         </div>
 
         <!-- Tank Container (takes available space in the middle) -->
-        <!-- Adjusted top positioning slightly for mobile view, centers on larger screens -->
+        <!-- Adjusted top positioning for mobile view to be 15% above center -->
+        <!-- z-index set lower than operating panel but higher than other elements if needed -->
         <div class="flex-grow flex items-center justify-center w-full mt-4 mb-4 sm:mt-0 sm:mb-0">
-            <div class="relative w-48 h-64 sm:w-64 sm:h-80" style="top: -35px;"> <!-- Adjusted top slightly -->
+            <div class="relative w-48 h-64 sm:w-64 sm:h-80" style="top: -15%;"> <!-- Adjusted top to 15% above center -->
                 <!-- Container principal do tanque -->
-                <div class="relative w-full h-full">
+                <div class="relative w-full h-full z-10"> <!-- Tank z-index -->
                     <!-- Tampa Elíptica 2.5D -->
                     <div class="absolute top-0 left-0 right-0 z-30" style="height: 36px;">
                         <div class="lid-ellipse w-full h-full"></div>
@@ -182,11 +184,11 @@
         </div>
 
         <!-- Bottom controls (Sliders and Rotary Switch) -->
-        <!-- Use flex-grow and flex-shrink to distribute available space -->
+        <!-- Adjusted bottom value to move them further up. -->
         <div class="flex justify-between w-full flex-wrap gap-4 sm:gap-8 mt-auto pb-4">
             <!-- Painel de Controle Inferior (Sliders) -->
             <!-- Alinhado no canto inferior esquerdo para mobile, e centralizado para desktop -->
-            <div class="panel p-1 w-40 sm:w-8/12 sm:max-w-[180px] sm:p-2 absolute bottom-24 left-4">
+            <div class="panel p-1 w-40 sm:w-8/12 sm:max-w-[180px] sm:p-2 absolute bottom-12 left-4">
                 <div class="text-center mb-1">
                     <span id="volume-display" class="text-lg sm:text-xl font-bold text-green-400">1500.0 L</span>
                 </div>
@@ -210,7 +212,7 @@
 
             <!-- Chave Seletora -->
             <!-- Alinhada no canto inferior direito para mobile, e no canto direito para desktop -->
-            <div class="panel p-2 flex flex-col items-center justify-center space-y-1 absolute bottom-24 right-4">
+            <div class="panel p-2 flex flex-col items-center justify-center space-y-1 absolute bottom-12 right-4">
                 <div id="rotary-switch-dial" class="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gray-900/50 border-2 border-gray-600 flex items-center justify-content-center">
                     <!-- Ponteiro: top:0, left:50%, transform: translateX(-50%) rotate(0deg), transform-origin: bottom; -->
                     <div id="rotary-switch-handle" class="absolute w-2 h-8 sm:h-10 bg-gray-300 rounded-lg transition-transform duration-500 ease-in-out" style="top: 0; left: 50%; transform: translateX(-50%) rotate(0deg); transform-origin: bottom;"></div>
