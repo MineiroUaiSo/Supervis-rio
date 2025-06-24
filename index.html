@@ -81,28 +81,28 @@
 
         /* Estilo 2.5D Corrigido e Aprimorado */
         .tank-body {
-            border-left: 3px solid rgba(49, 46, 129, 0.6);
-            border-right: 3px solid rgba(49, 46, 129, 0.6);
+            border-left: 4px solid rgba(79, 70, 229, 0.8); /* Stronger border for visibility */
+            border-right: 4px solid rgba(79, 70, 229, 0.8); /* Stronger border for visibility */
             background: linear-gradient(to right, rgba(23, 15, 58, 0.1), rgba(49, 46, 129, 0.05), rgba(23, 15, 58, 0.1));
             position: relative;
             overflow: hidden;
-            box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.3), 0 0 20px rgba(0, 0, 0, 0.2); /* Added subtle inner and outer shadow */
+            box-shadow: inset 0 0 25px rgba(0, 0, 0, 0.5), 0 0 30px rgba(0, 0, 0, 0.3); /* More pronounced inner and outer shadow */
         }
 
         .tank-rim {
             height: 36px;
-            border: 3px solid rgba(49, 46, 129, 0.8);
-            background: linear-gradient(to bottom, #4f46e5, #312e81); /* Stronger gradient for depth */
+            border: 4px solid rgba(79, 70, 229, 0.9); /* Stronger border */
+            background: linear-gradient(to bottom, #6366f1, #4f46e5); /* Brighter, more contrasting gradient */
             border-radius: 50%;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.4); /* Shadow for lift */
+            box-shadow: 0 8px 20px rgba(0,0,0,0.6); /* Stronger shadow for lift */
         }
 
         .tank-bottom {
             height: 36px;
-            background: linear-gradient(to bottom, #1e1b4b, #4f46e5); /* Stronger gradient for depth */
+            background: linear-gradient(to bottom, #4f46e5, #6366f1); /* Brighter, more contrasting gradient */
             border-radius: 50%;
-            border: 3px solid rgba(49, 46, 129, 0.8);
-            box-shadow: 0 -5px 15px rgba(0,0,0,0.4); /* Shadow for depth */
+            border: 4px solid rgba(79, 70, 229, 0.9); /* Stronger border */
+            box-shadow: 0 -8px 20px rgba(0,0,0,0.6); /* Stronger shadow for depth */
         }
 
         .water-body {
@@ -550,23 +550,21 @@
                 bubble.style.height = `${size}px`;
 
                 const waterContainerRect = waterContainer.getBoundingClientRect();
-                // Position left between 0% and 100% of waterContainer width, then translate X by -50% of bubble width to center
                 bubble.style.left = `${Math.random() * 100}%`; 
 
-                // The bubble should travel from bottom of waterContainer to its top
-                const waterHeightPx = waterContainer.offsetHeight; // Current visible height of water
-                const startY_px = 0; // Relative to bottom of waterContainer, bubble starts at bottom:0
-                const endY_px = -waterHeightPx; // Bubble travels up by the height of the water
+                const waterHeightPx = waterContainer.offsetHeight;
+                const startY_px = 0; // Bubble starts at the bottom of the water container (relative to its own container's bottom edge)
+                const endY_px = -waterHeightPx; // Bubble travels up to the top of the water container
 
-                const duration = Math.random() * 3000 + 2000; // 2 to 5 seconds in milliseconds
+                const duration = Math.random() * 3000 + 2000;
                 const startTime = performance.now();
 
                 function animateBubble(currentTime) {
                     const elapsedTime = currentTime - startTime;
                     const progress = Math.min(elapsedTime / duration, 1);
 
-                    const currentTranslateY = progress * endY_px; // Moves from 0 to -waterHeightPx
-                    const opacity = 0.5 * (1 - progress); // Fades out from 0.5 to 0
+                    const currentTranslateY = startY_px + (endY_px - startY_px) * progress; // Calculate Y position
+                    const opacity = 0.5 * (1 - progress); // Fades out
                     const scale = 0.5 + (progress * 0.5); // Grows from 0.5 to 1.0
 
                     bubble.style.transform = `translateX(-50%) translateY(${currentTranslateY}px) scale(${scale})`;
@@ -586,9 +584,8 @@
             function startBubbleGeneration() {
                 if (bubbleGenerationInterval === null) {
                     bubbleGenerationInterval = setInterval(() => {
-                        // Only create bubbles if pump is ON (adding water) or if there's consumption (movement in water)
-                        if (isPumpOn || currentConsumptionRateLPH > 0) { 
-                             if (currentTankVolumeLiters > 0) { // But still require water in the tank
+                        if (isPumpOn || currentConsumptionRateLPH > 0) {
+                             if (currentTankVolumeLiters > 0) {
                                 createBubble();
                             }
                         }
@@ -778,6 +775,7 @@
             function init() {
                 currentTankVolumeLiters = MAX_CAPACITY_LITERS * 0.50;
                 pumpControlMode = 'AUTO';
+                isPumpOn = false; // Initial pump state
                 runningTimeSeconds = 0;
                 stoppedTimeSeconds = 0;
 
