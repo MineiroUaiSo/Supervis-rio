@@ -123,7 +123,7 @@
         </button>
 
         <!-- Caixa d'água e Sensor -->
-        <!-- Ajustado para ficar um pouco mais alto que o centro -->
+        <!-- Ajustado para ficar um pouco mais alto que o centro (top-[35%]) -->
         <div class="absolute top-[35%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-64 sm:w-64 sm:h-80">
             <!-- Container principal do tanque -->
             <div class="relative w-full h-full">
@@ -165,7 +165,7 @@
         </div>
 
         <!-- Painel de Controle Inferior (Sliders) -->
-        <!-- Alinhado no canto inferior esquerdo para mobile -->
+        <!-- Alinhado no canto inferior esquerdo para mobile, mesma altura da chave trifásica -->
         <div class="absolute bottom-4 left-4 w-40 p-1 panel
                     sm:bottom-8 sm:left-1/2 sm:-translate-x-1/2 sm:w-8/12 sm:max-w-[180px] sm:p-2">
             <div class="text-center mb-1">
@@ -316,27 +316,40 @@
 
             function updateSimulation(deltaTime) {
                 // deltaTime está em segundos
-                const simTimeFactor = 360; // 1 segundo real = 360 segundos (6 minutos) simulados
+                const simTimeFactor = 360;
 
-                // Lógica da Bomba
+                // Armazena o estado atual da bomba antes de calcular o novo estado
+                let oldIsPumpOn = isPumpOn;
+
+                // Lógica da Bomba para determinar o novo estado
                 switch (pumpControlMode) {
                     case 'AUTO':
                         const currentPercentage = (currentTankVolumeLiters / MAX_CAPACITY_LITERS) * 100;
-                        if (currentPercentage < PUMP_ACTIVATION_THRESHOLD_PERCENTAGE && !isPumpOn) {
-                            isPumpOn = true;
-                        } else if (currentPercentage >= PUMP_DEACTIVATION_THRESHOLD_PERCENTAGE && isPumpOn) {
-                            isPumpOn = false;
+                        if (currentPercentage < PUMP_ACTIVATION_THRESHOLD_PERCENTAGE) {
+                            isPumpOn = true; // Ligar se o nível estiver abaixo do limite de ativação
+                        } else if (currentPercentage >= PUMP_DEACTIVATION_THRESHOLD_PERCENTAGE) {
+                            isPumpOn = false; // Desligar se o nível estiver acima ou igual ao limite de desativação
                         }
+                        // Se estiver entre os limites, a bomba mantém seu estado atual (isPumpOn não é alterado)
                         break;
                     case 'MANUAL':
-                        isPumpOn = true;
+                        isPumpOn = true; // Sempre ligada no modo manual
                         break;
                     case 'OFF':
-                        isPumpOn = false;
+                        isPumpOn = false; // Sempre desligada no modo off
                         break;
                 }
 
-                // Enchimento e Consumo
+                // Detectar mudança de estado e zerar os contadores de tempo
+                if (isPumpOn !== oldIsPumpOn) {
+                    if (isPumpOn) { // Bomba acabou de ligar
+                        stoppedTimeSeconds = 0; // Zera o contador de tempo desligado
+                    } else { // Bomba acabou de desligar
+                        runningTimeSeconds = 0; // Zera o contador de tempo ligado
+                    }
+                }
+
+                // Atualizar volume e acumular tempo com base no estado final da bomba para este frame
                 if (isPumpOn) {
                     currentTankVolumeLiters += (PUMP_RATE_LPH / 3600) * deltaTime * simTimeFactor;
                     runningTimeSeconds += deltaTime * simTimeFactor;
@@ -344,11 +357,10 @@
                     stoppedTimeSeconds += deltaTime * simTimeFactor;
                 }
 
-                if (currentConsumptionRateLPH > 0) {
-                     currentTankVolumeLiters -= (currentConsumptionRateLPH / 3600) * deltaTime * simTimeFactor;
-                }
+                // O consumo de água sempre se aplica, independentemente do estado da bomba
+                currentTankVolumeLiters -= (currentConsumptionRateLPH / 3600) * deltaTime * simTimeFactor;
 
-                // Limites
+                // Limites para o volume da água
                 if (currentTankVolumeLiters > MAX_CAPACITY_LITERS) {
                     currentTankVolumeLiters = MAX_CAPACITY_LITERS;
                 }
@@ -356,7 +368,7 @@
                     currentTankVolumeLiters = 0;
                 }
 
-                 // Desabilitar slider de nível se houver consumo
+                // Desabilitar slider de nível se houver consumo ativo
                 if (currentConsumptionRateLPH > 0) {
                     levelSlider.disabled = true;
                 } else {
@@ -377,7 +389,7 @@
                     levelSlider.value = percentage;
                 }
 
-                // Mudar cor do volume
+                // Mudar cor do volume com base na porcentagem
                 if (percentage < 25) {
                     volumeDisplay.style.color = '#f87171'; // red-400
                 } else if (percentage < 75) {
@@ -428,7 +440,7 @@
                 if (!activeLabel) return;
 
                 const angle = parseInt(activeLabel.dataset.angle, 10);
-                // Utiliza diretamente o ângulo definido no data-angle
+                // Utiliza diretamente o ângulo definido no data-angle para a rotação do ponteiro
                 rotarySwitchHandle.style.transform = `translate(-50%, -100%) rotate(${angle}deg)`;
 
                 rotarySwitchLabels.forEach(l => l.classList.remove('active'));
@@ -497,7 +509,7 @@
                 const on = parseInt(inputs.on.value, 10);
                 const off = parseInt(inputs.off.value, 10);
 
-                // Validation logic
+                // Lógica de validação
                 function showError(input, message) {
                     const errorEl = input.nextElementSibling;
                     errorEl.textContent = message;
