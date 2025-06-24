@@ -121,13 +121,16 @@
 
         <!-- Top controls (Settings button and Operating Panel) -->
         <div class="flex justify-between items-start w-full">
-            <!-- Settings button -->
-            <button id="settings-btn" class="px-3 py-1.5 btn-config text-xs sm:text-sm hover:bg-violet-500 transition-colors">
-                CONFIGURAÇÕES
+            <!-- Settings Menu Icon (vertical ellipsis) -->
+            <button id="settings-btn" class="p-2 btn-config rounded-full hover:bg-violet-500 transition-colors z-40">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-ellipsis-vertical text-white">
+                    <circle cx="12" cy="12" r="1"/>
+                    <circle cx="12" cy="5" r="1"/>
+                    <circle cx="12" cy="19" r="1"/>
+                </svg>
             </button>
 
             <!-- Operating Panel -->
-            <!-- z-index increased to ensure it's on top -->
             <div id="operating-panel-container" class="flex flex-col items-end space-y-1 z-20">
                  <div id="operating-panel" class="p-2 sm:p-3 panel w-36 sm:w-48 text-right">
                     <!-- Conteúdo dinâmico aqui -->
@@ -139,8 +142,7 @@
         </div>
 
         <!-- Tank Container (takes available space in the middle) -->
-        <!-- Adjusted top positioning for mobile view to be 15% above center -->
-        <!-- z-index set lower than operating panel but higher than other elements if needed -->
+        <!-- Adjusted top positioning slightly for mobile view, centers on larger screens -->
         <div class="flex-grow flex items-center justify-center w-full mt-4 mb-4 sm:mt-0 sm:mb-0">
             <div class="relative w-48 h-64 sm:w-64 sm:h-80" style="top: -15%;"> <!-- Adjusted top to 15% above center -->
                 <!-- Container principal do tanque -->
@@ -231,6 +233,41 @@
         </div>
     </div>
 
+    <!-- Overlay para o menu lateral -->
+    <div id="menu-overlay" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-30 hidden"></div>
+
+    <!-- Painel de Configurações (Lateral) -->
+    <!-- Positioned absolutely, slides in from left -->
+    <div id="settings-panel" class="fixed top-0 left-0 h-full w-64 panel transform -translate-x-full transition-transform duration-300 ease-out z-40 p-6">
+        <h2 class="text-2xl sm:text-3xl font-bold mb-6 text-center">Configurações</h2>
+        <div class="space-y-4">
+            <div>
+                <label for="tank-capacity-input" class="block mb-1 text-sm font-medium">Capacidade do Tanque (L)</label>
+                <input type="number" id="tank-capacity-input" class="w-full bg-gray-900/50 border border-gray-600 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-violet-500">
+                <p class="error-message text-red-400 text-xs mt-1 h-4"></p>
+            </div>
+            <div>
+                <label for="pump-flow-input" class="block mb-1 text-sm font-medium">Vazão da Bomba (L/H)</label>
+                <input type="number" id="pump-flow-input" class="w-full bg-gray-900/50 border border-gray-600 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-violet-500">
+                 <p class="error-message text-red-400 text-xs mt-1 h-4"></p>
+            </div>
+            <div>
+                <label for="pump-on-percentage-input" class="block mb-1 text-sm font-medium">Ligar Bomba em (%)</label>
+                <input type="number" id="pump-on-percentage-input" class="w-full bg-gray-900/50 border border-gray-600 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-violet-500">
+                 <p class="error-message text-red-400 text-xs mt-1 h-4"></p>
+            </div>
+            <div>
+                <label for="pump-off-percentage-input" class="block mb-1 text-sm font-medium">Desligar Bomba em (%)</label>
+                <input type="number" id="pump-off-percentage-input" class="w-full bg-gray-900/50 border border-gray-600 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-violet-500">
+                <p class="error-message text-red-400 text-xs mt-1 h-4"></p>
+            </div>
+        </div>
+        <div class="flex justify-end gap-4 mt-6">
+            <button id="cancel-settings-btn" class="px-6 py-2 bg-gray-600 hover:bg-gray-700 rounded-lg transition-colors">Cancelar</button>
+            <button id="save-settings-btn" class="px-6 py-2 bg-violet-600 hover:bg-violet-700 rounded-lg transition-colors">Salvar</button>
+        </div>
+    </div>
+
     <!-- Modal de Confirmação -->
     <div id="confirmation-modal" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
         <div class="panel p-6 sm:p-8 rounded-2xl max-w-sm w-full text-center">
@@ -239,39 +276,6 @@
             <div class="flex justify-center gap-4">
                 <button id="confirm-btn" class="px-6 py-2 bg-green-500 hover:bg-green-600 rounded-lg transition-colors font-semibold">Confirmar</button>
                 <button id="cancel-btn" class="px-6 py-2 bg-red-500 hover:bg-red-600 rounded-lg transition-colors font-semibold">Cancelar</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Painel de Configurações -->
-    <div id="settings-panel" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-40 p-4">
-        <div class="panel p-6 sm:p-8 rounded-2xl w-full max-w-md">
-            <h2 class="text-2xl sm:text-3xl font-bold mb-6 text-center">Configurações da Simulação</h2>
-            <div class="space-y-4">
-                <div>
-                    <label for="tank-capacity-input" class="block mb-1 text-sm font-medium">Capacidade do Tanque (L)</label>
-                    <input type="number" id="tank-capacity-input" class="w-full bg-gray-900/50 border border-gray-600 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-violet-500">
-                    <p class="error-message text-red-400 text-xs mt-1 h-4"></p>
-                </div>
-                <div>
-                    <label for="pump-flow-input" class="block mb-1 text-sm font-medium">Vazão da Bomba (L/H)</label>
-                    <input type="number" id="pump-flow-input" class="w-full bg-gray-900/50 border border-gray-600 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-violet-500">
-                     <p class="error-message text-red-400 text-xs mt-1 h-4"></p>
-                </div>
-                <div>
-                    <label for="pump-on-percentage-input" class="block mb-1 text-sm font-medium">Ligar Bomba em (%)</label>
-                    <input type="number" id="pump-on-percentage-input" class="w-full bg-gray-900/50 border border-gray-600 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-violet-500">
-                     <p class="error-message text-red-400 text-xs mt-1 h-4"></p>
-                </div>
-                <div>
-                    <label for="pump-off-percentage-input" class="block mb-1 text-sm font-medium">Desligar Bomba em (%)</label>
-                    <input type="number" id="pump-off-percentage-input" class="w-full bg-gray-900/50 border border-gray-600 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-violet-500">
-                    <p class="error-message text-red-400 text-xs mt-1 h-4"></p>
-                </div>
-            </div>
-            <div class="flex justify-end gap-4 mt-6">
-                <button id="cancel-settings-btn" class="px-6 py-2 bg-gray-600 hover:bg-gray-700 rounded-lg transition-colors">Cancelar</button>
-                <button id="save-settings-btn" class="px-6 py-2 bg-violet-600 hover:bg-violet-700 rounded-lg transition-colors">Salvar</button>
             </div>
         </div>
     </div>
@@ -302,6 +306,7 @@
             const rotarySwitchLabels = document.querySelectorAll('.rotary-switch-label');
             const modeDisplay = document.getElementById('mode-display');
             const wavePulseContainer = document.getElementById('wave-pulse-container');
+            const menuOverlay = document.getElementById('menu-overlay'); // New overlay element
 
             // --- VARIÁVEIS DE SIMULAÇÃO ---
             let MAX_CAPACITY_LITERS = 3000;
@@ -491,11 +496,11 @@
             function toggleSettingsPanel(show) {
                 if (show) {
                     populateSettingsForm();
-                    settingsPanel.classList.remove('hidden');
-                    simulationUI.classList.add('hidden');
+                    settingsPanel.classList.remove('-translate-x-full');
+                    menuOverlay.classList.remove('hidden');
                 } else {
-                    settingsPanel.classList.add('hidden');
-                    simulationUI.classList.remove('hidden');
+                    settingsPanel.classList.add('-translate-x-full');
+                    menuOverlay.classList.add('hidden');
                 }
             }
 
@@ -619,8 +624,15 @@
             });
 
             settingsBtn.addEventListener('click', () => toggleSettingsPanel(true));
-            saveSettingsBtn.addEventListener('click', validateAndSaveSettings);
+            saveSettingsBtn.addEventListener('click', () => {
+                validateAndSaveSettings();
+                if (!document.querySelector('.error-message').textContent) { // Only close if no errors
+                    toggleSettingsPanel(false);
+                }
+            });
             cancelSettingsBtn.addEventListener('click', () => toggleSettingsPanel(false));
+            menuOverlay.addEventListener('click', () => toggleSettingsPanel(false));
+
 
             rotarySwitchLabels.forEach(label => {
                 label.addEventListener('click', (e) => {
