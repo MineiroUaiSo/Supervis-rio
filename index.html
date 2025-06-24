@@ -86,20 +86,23 @@
             background: linear-gradient(to right, rgba(23, 15, 58, 0.1), rgba(49, 46, 129, 0.05), rgba(23, 15, 58, 0.1));
             position: relative;
             overflow: hidden;
+            box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.3), 0 0 20px rgba(0, 0, 0, 0.2); /* Added subtle inner and outer shadow */
         }
 
         .tank-rim {
             height: 36px;
             border: 3px solid rgba(49, 46, 129, 0.8);
-            background: linear-gradient(to bottom, #312e81, #1e1b4b);
+            background: linear-gradient(to bottom, #4f46e5, #312e81); /* Stronger gradient for depth */
             border-radius: 50%;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.4); /* Shadow for lift */
         }
 
         .tank-bottom {
             height: 36px;
-            background: linear-gradient(to bottom, #1e1b4b, #312e81);
+            background: linear-gradient(to bottom, #1e1b4b, #4f46e5); /* Stronger gradient for depth */
             border-radius: 50%;
             border: 3px solid rgba(49, 46, 129, 0.8);
+            box-shadow: 0 -5px 15px rgba(0,0,0,0.4); /* Shadow for depth */
         }
 
         .water-body {
@@ -110,6 +113,14 @@
             height: 36px;
             background: linear-gradient(to bottom, rgba(165, 180, 252, 0.7), rgba(99, 102, 241, 0.7));
             border-radius: 50%;
+            /* Water surface animation */
+            animation: water-surface-wave 4s infinite ease-in-out alternate;
+        }
+
+        @keyframes water-surface-wave {
+            0% { transform: scaleY(1); opacity: 0.9; }
+            50% { transform: scaleY(0.98) translateY(1px); opacity: 1; }
+            100% { transform: scaleY(1); opacity: 0.9; }
         }
 
         /* Bubble Styles - No keyframes here, controlled by JS */
@@ -120,7 +131,7 @@
             bottom: 0; /* Starts at the bottom of the water container */
             pointer-events: none; /* Bubbles should not interfere with clicks */
             z-index: 5; /* Below water surface (z-10), above water body */
-            transform: translateX(-50%); /* Centers the bubble horizontally based on its left position */
+            /* transform: translateX(-50%); Removed from CSS, handled by JS */
         }
     </style>
 </head>
@@ -328,14 +339,14 @@
             let PUMP_ACTIVATION_THRESHOLD_PERCENTAGE = 75;
             let PUMP_DEACTIVATION_THRESHOLD_PERCENTAGE = 100;
 
-            let currentTankVolumeLiters; // Defined in init
+            let currentTankVolumeLiters;
             let currentConsumptionRateLPH = 40;
             let isPumpOn = false;
-            let pumpControlMode; // Defined in init
+            let pumpControlMode;
 
             let areLabelsVisible = false;
-            let runningTimeSeconds; // Defined in init
-            let stoppedTimeSeconds; // Defined in init
+            let runningTimeSeconds;
+            let stoppedTimeSeconds;
 
             let lastTimestamp = 0;
             let timeAccumulator = 0;
@@ -352,7 +363,63 @@
                 'MANUAL': 120
             };
 
-            // --- FUNÇÕES DE ATUALIZAÇÃO DA UI (move para cima para serem definidas antes de init) ---
+            // --- FUNÇÕES DE LÓGICA DE SIMULAÇÃO ---
+            function updateSimulation(deltaTime) {
+                const simTimeFactor = 360;
+                let oldIsPumpOn = isPumpOn;
+
+                switch (pumpControlMode) {
+                    case 'AUTO':
+                        const currentPercentage = (currentTankVolumeLiters / MAX_CAPACITY_LITERS) * 100;
+                        if (currentPercentage < PUMP_ACTIVATION_THRESHOLD_PERCENTAGE) {
+                            isPumpOn = true;
+                        } else if (currentPercentage >= PUMP_DEACTIVATION_THRESHOLD_PERCENTAGE) {
+                            isPumpOn = false;
+                        }
+                        break;
+                    case 'MANUAL':
+                        isPumpOn = true;
+                        break;
+                    case 'OFF':
+                        isPumpOn = false;
+                        break;
+                }
+
+                if (isPumpOn !== oldIsPumpOn) {
+                    if (isPumpOn) {
+                        stoppedTimeSeconds = 0;
+                    } else {
+                        runningTimeSeconds = 0;
+                    }
+                }
+
+                if (isPumpOn) {
+                    currentTankVolumeLiters += (PUMP_RATE_LPH / 3600) * deltaTime * simTimeFactor;
+                    runningTimeSeconds += deltaTime * simTimeFactor;
+                } else {
+                    stoppedTimeSeconds += deltaTime * simTimeFactor;
+                }
+
+                currentTankVolumeLiters -= (currentConsumptionRateLPH / 3600) * deltaTime * simTimeFactor;
+
+                if (currentTankVolumeLiters > MAX_CAPACITY_LITERS) {
+                    currentTankVolumeLiters = MAX_CAPACITY_LITERS;
+                }
+                if (currentTankVolumeLiters < 0) {
+                    currentTankVolumeLiters = 0;
+                    stopBubbleGeneration();
+                } else if (currentTankVolumeLiters > 0 && bubbleGenerationInterval === null) {
+                    startBubbleGeneration();
+                }
+
+                if (currentConsumptionRateLPH > 0) {
+                    levelSlider.disabled = true;
+                } else {
+                    levelSlider.disabled = false;
+                }
+            }
+            
+            // --- FUNÇÕES DE ATUALIZAÇÃO DA UI ---
             function updateWaterLevel() {
                 const percentage = (currentTankVolumeLiters / MAX_CAPACITY_LITERS) * 100;
 
@@ -478,42 +545,37 @@
                 const bubble = document.createElement('div');
                 bubble.className = 'bubble';
 
-                const size = Math.random() * 8 + 2; // 2px to 10px
+                const size = Math.random() * 8 + 2;
                 bubble.style.width = `${size}px`;
                 bubble.style.height = `${size}px`;
 
                 const waterContainerRect = waterContainer.getBoundingClientRect();
-                const randomLeft = Math.random() * (waterContainerRect.width - size);
-                bubble.style.left = `${randomLeft}px`;
+                // Position left between 0% and 100% of waterContainer width, then translate X by -50% of bubble width to center
+                bubble.style.left = `${Math.random() * 100}%`; 
 
-                // Calculate the target translateY based on the current water height
-                const waterHeight = waterContainer.offsetHeight; // Get current height of water fill
-                // The bubble starts at bottom:0 of waterContainer, so it needs to travel up by waterHeight
-                const targetTranslateY = -waterHeight;
+                // The bubble should travel from bottom of waterContainer to its top
+                const waterHeightPx = waterContainer.offsetHeight; // Current visible height of water
+                const startY_px = 0; // Relative to bottom of waterContainer, bubble starts at bottom:0
+                const endY_px = -waterHeightPx; // Bubble travels up by the height of the water
 
-                const duration = Math.random() * 3 + 2; // 2 to 5 seconds
+                const duration = Math.random() * 3000 + 2000; // 2 to 5 seconds in milliseconds
                 const startTime = performance.now();
 
                 function animateBubble(currentTime) {
                     const elapsedTime = currentTime - startTime;
-                    const progress = Math.min(elapsedTime / (duration * 1000), 1); // Convert duration to milliseconds
+                    const progress = Math.min(elapsedTime / duration, 1);
 
-                    // Linear movement up
-                    const currentY = progress * targetTranslateY;
-                    
-                    // Fade out as it approaches the surface
-                    const opacity = 0.5 * (1 - progress);
-                    
-                    // Scale down slightly as it fades
-                    const scale = 0.5 + (1 - progress) * 0.5; // Starts at 0.5, ends at 0.5
+                    const currentTranslateY = progress * endY_px; // Moves from 0 to -waterHeightPx
+                    const opacity = 0.5 * (1 - progress); // Fades out from 0.5 to 0
+                    const scale = 0.5 + (progress * 0.5); // Grows from 0.5 to 1.0
 
-                    bubble.style.transform = `translateX(-50%) translateY(${currentY}px) scale(${scale})`;
+                    bubble.style.transform = `translateX(-50%) translateY(${currentTranslateY}px) scale(${scale})`;
                     bubble.style.opacity = opacity;
 
                     if (progress < 1) {
                         requestAnimationFrame(animateBubble);
                     } else {
-                        bubble.remove(); // Remove when animation is complete
+                        bubble.remove();
                     }
                 }
                 requestAnimationFrame(animateBubble);
@@ -524,10 +586,11 @@
             function startBubbleGeneration() {
                 if (bubbleGenerationInterval === null) {
                     bubbleGenerationInterval = setInterval(() => {
-                        if (currentTankVolumeLiters > 0) {
-                            createBubble();
-                        } else {
-                            stopBubbleGeneration();
+                        // Only create bubbles if pump is ON (adding water) or if there's consumption (movement in water)
+                        if (isPumpOn || currentConsumptionRateLPH > 0) { 
+                             if (currentTankVolumeLiters > 0) { // But still require water in the tank
+                                createBubble();
+                            }
                         }
                     }, 300);
                 }
@@ -560,63 +623,6 @@
                     if (pulse) pulse.remove();
                 }, duration);
             }
-
-            // --- FUNÇÕES DE LÓGICA ---
-            function updateSimulation(deltaTime) {
-                const simTimeFactor = 360;
-                let oldIsPumpOn = isPumpOn;
-
-                switch (pumpControlMode) {
-                    case 'AUTO':
-                        const currentPercentage = (currentTankVolumeLiters / MAX_CAPACITY_LITERS) * 100;
-                        if (currentPercentage < PUMP_ACTIVATION_THRESHOLD_PERCENTAGE) {
-                            isPumpOn = true;
-                        } else if (currentPercentage >= PUMP_DEACTIVATION_THRESHOLD_PERCENTAGE) {
-                            isPumpOn = false;
-                        }
-                        break;
-                    case 'MANUAL':
-                        isPumpOn = true;
-                        break;
-                    case 'OFF':
-                        isPumpOn = false;
-                        break;
-                }
-
-                if (isPumpOn !== oldIsPumpOn) {
-                    if (isPumpOn) {
-                        stoppedTimeSeconds = 0;
-                    } else {
-                        runningTimeSeconds = 0;
-                    }
-                }
-
-                if (isPumpOn) {
-                    currentTankVolumeLiters += (PUMP_RATE_LPH / 3600) * deltaTime * simTimeFactor;
-                    runningTimeSeconds += deltaTime * simTimeFactor;
-                } else {
-                    stoppedTimeSeconds += deltaTime * simTimeFactor;
-                }
-
-                currentTankVolumeLiters -= (currentConsumptionRateLPH / 3600) * deltaTime * simTimeFactor;
-
-                if (currentTankVolumeLiters > MAX_CAPACITY_LITERS) {
-                    currentTankVolumeLiters = MAX_CAPACITY_LITERS;
-                }
-                if (currentTankVolumeLiters < 0) {
-                    currentTankVolumeLiters = 0;
-                    stopBubbleGeneration();
-                } else if (currentTankVolumeLiters > 0 && bubbleGenerationInterval === null) {
-                    startBubbleGeneration();
-                }
-
-                if (currentConsumptionRateLPH > 0) {
-                    levelSlider.disabled = true;
-                } else {
-                    levelSlider.disabled = false;
-                }
-            }
-
 
             // --- FUNÇÕES DE UI E EVENTOS ---
 
@@ -770,7 +776,6 @@
 
             // --- INICIALIZAÇÃO ---
             function init() {
-                // Configurações iniciais
                 currentTankVolumeLiters = MAX_CAPACITY_LITERS * 0.50;
                 pumpControlMode = 'AUTO';
                 runningTimeSeconds = 0;
