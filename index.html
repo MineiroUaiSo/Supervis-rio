@@ -334,7 +334,7 @@
 
             // Map modes to their angles
             const modeAngles = {
-                'OFF': 0,    // Top position
+                'OFF': 0,    // Top position (0 degrees is up for our visual)
                 'AUTO': 240, // Bottom-left position (8 o'clock equivalent)
                 'MANUAL': 120 // Bottom-right position (4 o'clock equivalent)
             };
@@ -721,6 +721,12 @@
 
             // --- INICIALIZAÇÃO ---
             function init() {
+                // Configurações iniciais
+                currentTankVolumeLiters = MAX_CAPACITY_LITERS * 0.50; // 50% da capacidade
+                pumpControlMode = 'AUTO'; // Chave trifásica em AUTO
+                runningTimeSeconds = 0; // Bomba começa a 0 minutos ligada
+                stoppedTimeSeconds = 0; // Bomba começa a 0 minutos desligada
+
                 updateWaterLevel();
                 updateOperatingPanel();
                 // Initialize currentHandleAngle based on the default pumpControlMode
