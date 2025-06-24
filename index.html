@@ -216,16 +216,16 @@
             <!-- Alinhada no canto inferior direito para mobile, e no canto direito para desktop -->
             <div class="panel p-2 flex flex-col items-center justify-center space-y-1 absolute bottom-12 right-4">
                 <div id="rotary-switch-dial" class="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gray-900/50 border-2 border-gray-600 flex items-center justify-content-center">
-                    <!-- Ponteiro: top: 8px; left: 50%; transform: translateX(-50%) rotate(0deg); transform-origin: bottom; -->
-                    <div id="rotary-switch-handle" class="absolute w-2 h-8 sm:h-10 bg-gray-300 rounded-lg transition-transform duration-500 ease-in-out" style="top: 8px; left: 50%; transform: translateX(-50%) rotate(0deg); transform-origin: bottom;"></div>
+                    <!-- Ponteiro: top: 50%; left: 50%; transform: translate(-50%, -100%) rotate(0deg); transform-origin: bottom center; -->
+                    <div id="rotary-switch-handle" class="absolute w-2 h-8 sm:h-10 bg-gray-300 rounded-lg transition-transform duration-500 ease-in-out" style="top: 50%; left: 50%; transform: translate(-50%, -100%) rotate(0deg); transform-origin: bottom center;"></div>
                     <div class="absolute w-full h-full text-xs">
                          <!-- Ângulos ajustados para alinhamento correto com o ponteiro.
-                              "0" (OFF) no topo é -90 graus.
-                              "1" (AUTO) na posição das 8h é 210 graus.
-                              "2" (MANUAL) na posição das 4h é 30 graus. -->
-                         <span data-mode="AUTO" data-angle="210" class="rotary-switch-label absolute bottom-[15%] left-[15%] cursor-pointer p-1 text-gray-400">1</span>
-                         <span data-mode="OFF" data-angle="-90" class="rotary-switch-label active absolute top-[5%] left-1/2 -translate-x-1/2 cursor-pointer p-1 text-gray-400">0</span>
-                         <span data-mode="MANUAL" data-angle="30" class="rotary-switch-label absolute bottom-[15%] right-[15%] cursor-pointer p-1 text-gray-400">2</span>
+                              "0" (OFF) no topo é 0 graus.
+                              "1" (AUTO) na posição das 8h é 240 graus.
+                              "2" (MANUAL) na posição das 4h é 120 graus. -->
+                         <span data-mode="AUTO" data-angle="240" class="rotary-switch-label absolute bottom-[15%] left-[15%] cursor-pointer p-1 text-gray-400">1</span>
+                         <span data-mode="OFF" data-angle="0" class="rotary-switch-label active absolute top-[5%] left-1/2 -translate-x-1/2 cursor-pointer p-1 text-gray-400">0</span>
+                         <span data-mode="MANUAL" data-angle="120" class="rotary-switch-label absolute bottom-[15%] right-[15%] cursor-pointer p-1 text-gray-400">2</span>
                     </div>
                 </div>
                 <div id="mode-display" class="font-semibold text-sm text-green-400">OFF</div>
@@ -456,9 +456,9 @@
                 if (!activeLabel) return;
 
                 const angle = parseInt(activeLabel.dataset.angle, 10);
-                // O transform-origin: bottom; no CSS do handle garante o pivô correto.
+                // O transform-origin: bottom center; no CSS inline do handle garante o pivô correto.
                 // Apenas use translateX para centralizar horizontalmente e rotate para a rotação.
-                rotarySwitchHandle.style.transform = `translateX(-50%) rotate(${angle}deg)`;
+                rotarySwitchHandle.style.transform = `translate(-50%, -100%) rotate(${angle}deg)`;
 
                 rotarySwitchLabels.forEach(l => l.classList.remove('active'));
                 activeLabel.classList.add('active');
