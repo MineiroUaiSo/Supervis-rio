@@ -115,109 +115,116 @@
 </head>
 <body class="bg-[#1a103c]">
 
-    <div id="simulation-ui" class="relative w-full h-full max-w-7xl max-h-[1024px] mx-auto">
+    <!-- Main simulation UI container -->
+    <!-- Using flexbox for better vertical distribution and responsiveness -->
+    <div id="simulation-ui" class="flex flex-col justify-between items-center w-full h-full max-w-7xl max-h-[1024px] mx-auto p-4 sm:p-6">
 
-        <!-- Botão Configurações -->
-        <button id="settings-btn" class="absolute top-4 left-4 sm:top-6 sm:left-6 z-40 px-3 py-1.5 btn-config text-xs sm:text-sm hover:bg-violet-500 transition-colors">
-            CONFIGURAÇÕES
-        </button>
-
-        <!-- Caixa d'água e Sensor -->
-        <!-- Ajustado para ficar um pouco mais alto que o centro (top-[35%]) -->
-        <div class="absolute top-[35%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-64 sm:w-64 sm:h-80">
-            <!-- Container principal do tanque -->
-            <div class="relative w-full h-full">
-                <!-- Tampa Elíptica 2.5D -->
-                <div class="absolute top-0 left-0 right-0 z-30" style="height: 36px;">
-                    <div class="lid-ellipse w-full h-full"></div>
-                    <div id="ultrasonic-sensor" class="absolute top-2 left-1/2 -translate-x-1/2 w-8 h-1.5 bg-gray-400 rounded-t-md flex justify-around items-center px-1 z-10">
-                        <div class="w-0.5 h-0.5 bg-red-500 rounded-full animate-pulse"></div>
-                        <div class="w-0.5 h-0.5 bg-red-500 rounded-full animate-pulse delay-150"></div>
-                        <div class="w-0.5 h-0.5 bg-red-500 rounded-full animate-pulse delay-300"></div>
-                    </div>
-                </div>
-
-                <!-- Container do Tanque (Vidro e Água) -->
-                <div class="absolute top-0 left-0 right-0 bottom-0">
-                    <div class="relative w-full h-full">
-                        <!-- Base do tanque (elipse inferior, atrás de tudo) -->
-                        <div class="tank-bottom absolute bottom-0 left-0 right-0 z-0"></div>
-
-                        <!-- Corpo do tanque (paredes de vidro) - agora contém a água -->
-                        <div class="tank-body absolute top-[18px] left-0 right-0 bottom-[18px]">
-                            <!-- Água -->
-                             <div id="water-container" class="absolute bottom-0 left-0 right-0 z-10" style="height: 50%;">
-                                 <div class="relative w-full h-full">
-                                     <div id="water-surface" class="water-surface absolute top-0 left-0 right-0"></div>
-                                     <div class="water-body absolute top-[18px] bottom-0 left-0 right-0"></div>
-                                 </div>
-                             </div>
-                        </div>
-
-                        <!-- Borda superior do tanque (na frente de tudo) -->
-                        <div class="tank-rim absolute top-0 left-0 right-0 z-20"></div>
-                    </div>
-                </div>
-
-                    <!-- Pulsos de Onda -->
-                <div id="wave-pulse-container" class="absolute top-[36px] left-[3px] right-[3px] bottom-0 overflow-hidden"></div>
-            </div>
-        </div>
-
-        <!-- Painel de Controle Inferior (Sliders) -->
-        <!-- Alinhado no canto inferior esquerdo para mobile, mesma altura da chave trifásica -->
-        <div class="absolute bottom-4 left-4 w-40 p-1 panel
-                    sm:bottom-8 sm:left-1/2 sm:-translate-x-1/2 sm:w-8/12 sm:max-w-[180px] sm:p-2">
-            <div class="text-center mb-1">
-                <span id="volume-display" class="text-lg sm:text-xl font-bold text-green-400">1500.0 L</span>
-            </div>
-            <div class="space-y-1">
-                <div>
-                    <div class="flex justify-between items-center text-[9px] sm:text-[11px] mb-0.5">
-                        <span>Nível da Água</span>
-                        <span id="level-percentage-display">50%</span>
-                    </div>
-                    <input id="level-slider" type="range" min="0" max="100" value="50" step="0.1" class="w-full">
-                </div>
-                <div>
-                    <div class="flex justify-between items-center text-[9px] sm:text-[11px] mb-0.5">
-                        <span>Consumo</span>
-                        <span id="consumption-label">40 L/H</span>
-                    </div>
-                    <input id="consumption-slider" type="range" min="0" max="1000" value="40" class="w-full">
-                </div>
-            </div>
-        </div>
-
-        <!-- Painel de Operação (Direita) -->
-        <div id="operating-panel-container" class="absolute top-4 right-4 sm:top-6 sm:right-6 flex flex-col items-end space-y-1 z-20">
-             <div id="operating-panel" class="p-2 sm:p-3 panel w-36 sm:w-48 text-right">
-                <!-- Conteúdo dinâmico aqui -->
-            </div>
-             <button id="info-btn" class="w-6 h-6 flex items-center justify-center bg-violet-400/50 rounded-full text-sm font-bold hover:bg-violet-400/80 transition-colors">
-                ⓘ
+        <!-- Top controls (Settings button and Operating Panel) -->
+        <div class="flex justify-between items-start w-full">
+            <!-- Settings button -->
+            <button id="settings-btn" class="px-3 py-1.5 btn-config text-xs sm:text-sm hover:bg-violet-500 transition-colors">
+                CONFIGURAÇÕES
             </button>
+
+            <!-- Operating Panel -->
+            <div id="operating-panel-container" class="flex flex-col items-end space-y-1 z-20">
+                 <div id="operating-panel" class="p-2 sm:p-3 panel w-36 sm:w-48 text-right">
+                    <!-- Conteúdo dinâmico aqui -->
+                </div>
+                 <button id="info-btn" class="w-6 h-6 flex items-center justify-center bg-violet-400/50 rounded-full text-sm font-bold hover:bg-violet-400/80 transition-colors">
+                    ⓘ
+                </button>
+            </div>
         </div>
 
-        <!-- Chave Seletora -->
-        <!-- Alinhada no canto inferior direito para mobile.
-             Ajustes finos para alinhamento do ponteiro. -->
-        <div class="absolute bottom-4 right-4 panel p-2 flex flex-col items-center justify-center space-y-1
-                    sm:bottom-8 sm:right-8 sm:left-auto">
-            <div id="rotary-switch-dial" class="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gray-900/50 border-2 border-gray-600 flex items-center justify-content-center">
-                <!-- Adicionado top:0, left:50% para posicionamento e transform-origin: bottom para rotação correta -->
-                <div id="rotary-switch-handle" class="absolute w-2 h-8 sm:h-10 bg-gray-300 rounded-lg transition-transform duration-500 ease-in-out" style="top: 0; left: 50%; transform: translateX(-50%) rotate(0deg); transform-origin: bottom;"></div>
-                <div class="absolute w-full h-full text-xs">
-                     <!-- Ângulos ajustados para alinhamento correto com o ponteiro.
-                          "0" (OFF) no topo é 0 graus.
-                          "1" (AUTO) na posição das 8h é 240 graus.
-                          "2" (MANUAL) na posição das 4h é 120 graus. -->
-                     <span data-mode="AUTO" data-angle="240" class="rotary-switch-label absolute bottom-[15%] left-[15%] cursor-pointer p-1 text-gray-400">1</span>
-                     <span data-mode="OFF" data-angle="0" class="rotary-switch-label active absolute top-[5%] left-1/2 -translate-x-1/2 cursor-pointer p-1 text-gray-400">0</span>
-                     <span data-mode="MANUAL" data-angle="120" class="rotary-switch-label absolute bottom-[15%] right-[15%] cursor-pointer p-1 text-gray-400">2</span>
+        <!-- Tank Container (takes available space in the middle) -->
+        <!-- Adjusted top positioning slightly for mobile view, centers on larger screens -->
+        <div class="flex-grow flex items-center justify-center w-full mt-4 mb-4 sm:mt-0 sm:mb-0">
+            <div class="relative w-48 h-64 sm:w-64 sm:h-80">
+                <!-- Container principal do tanque -->
+                <div class="relative w-full h-full">
+                    <!-- Tampa Elíptica 2.5D -->
+                    <div class="absolute top-0 left-0 right-0 z-30" style="height: 36px;">
+                        <div class="lid-ellipse w-full h-full"></div>
+                        <div id="ultrasonic-sensor" class="absolute top-2 left-1/2 -translate-x-1/2 w-8 h-1.5 bg-gray-400 rounded-t-md flex justify-around items-center px-1 z-10">
+                            <div class="w-0.5 h-0.5 bg-red-500 rounded-full animate-pulse"></div>
+                            <div class="w-0.5 h-0.5 bg-red-500 rounded-full animate-pulse delay-150"></div>
+                            <div class="w-0.5 h-0.5 bg-red-500 rounded-full animate-pulse delay-300"></div>
+                        </div>
+                    </div>
+
+                    <!-- Container do Tanque (Vidro e Água) -->
+                    <div class="absolute top-0 left-0 right-0 bottom-0">
+                        <div class="relative w-full h-full">
+                            <!-- Base do tanque (elipse inferior, atrás de tudo) -->
+                            <div class="tank-bottom absolute bottom-0 left-0 right-0 z-0"></div>
+
+                            <!-- Corpo do tanque (paredes de vidro) - agora contém a água -->
+                            <div class="tank-body absolute top-[18px] left-0 right-0 bottom-[18px]">
+                                <!-- Água -->
+                                 <div id="water-container" class="absolute bottom-0 left-0 right-0 z-10" style="height: 50%;">
+                                     <div class="relative w-full h-full">
+                                         <div id="water-surface" class="water-surface absolute top-0 left-0 right-0"></div>
+                                         <div class="water-body absolute top-[18px] bottom-0 left-0 right-0"></div>
+                                     </div>
+                                 </div>
+                            </div>
+
+                            <!-- Borda superior do tanque (na frente de tudo) -->
+                            <div class="tank-rim absolute top-0 left-0 right-0 z-20"></div>
+                        </div>
+                    </div>
+
+                        <!-- Pulsos de Onda -->
+                    <div id="wave-pulse-container" class="absolute top-[36px] left-[3px] right-[3px] bottom-0 overflow-hidden"></div>
                 </div>
             </div>
-            <div id="mode-display" class="font-semibold text-sm text-green-400">OFF</div>
+        </div>
+
+        <!-- Bottom controls (Sliders and Rotary Switch) -->
+        <div class="flex justify-between w-full flex-wrap gap-4 sm:gap-8 mt-auto pt-4 sm:pt-6">
+            <!-- Painel de Controle Inferior (Sliders) -->
+            <!-- Alinhado no canto inferior esquerdo para mobile, e centralizado para desktop -->
+            <div class="panel p-1 w-40 sm:w-8/12 sm:max-w-[180px] sm:p-2">
+                <div class="text-center mb-1">
+                    <span id="volume-display" class="text-lg sm:text-xl font-bold text-green-400">1500.0 L</span>
+                </div>
+                <div class="space-y-1">
+                    <div>
+                        <div class="flex justify-between items-center text-[9px] sm:text-[11px] mb-0.5">
+                            <span>Nível da Água</span>
+                            <span id="level-percentage-display">50%</span>
+                        </div>
+                        <input id="level-slider" type="range" min="0" max="100" value="50" step="0.1" class="w-full">
+                    </div>
+                    <div>
+                        <div class="flex justify-between items-center text-[9px] sm:text-[11px] mb-0.5">
+                            <span>Consumo</span>
+                            <span id="consumption-label">40 L/H</span>
+                        </div>
+                        <input id="consumption-slider" type="range" min="0" max="1000" value="40" class="w-full">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chave Seletora -->
+            <!-- Alinhada no canto inferior direito para mobile, e no canto direito para desktop -->
+            <div class="panel p-2 flex flex-col items-center justify-center space-y-1 ml-auto sm:ml-0">
+                <div id="rotary-switch-dial" class="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gray-900/50 border-2 border-gray-600 flex items-center justify-content-center">
+                    <!-- Ponteiro: top:0, left:50%, transform: translateX(-50%) rotate(0deg), transform-origin: bottom; -->
+                    <div id="rotary-switch-handle" class="absolute w-2 h-8 sm:h-10 bg-gray-300 rounded-lg transition-transform duration-500 ease-in-out" style="top: 0; left: 50%; transform: translateX(-50%) rotate(0deg); transform-origin: bottom;"></div>
+                    <div class="absolute w-full h-full text-xs">
+                         <!-- Ângulos ajustados para alinhamento correto com o ponteiro.
+                              "0" (OFF) no topo é 0 graus.
+                              "1" (AUTO) na posição das 8h é 240 graus.
+                              "2" (MANUAL) na posição das 4h é 120 graus. -->
+                         <span data-mode="AUTO" data-angle="240" class="rotary-switch-label absolute bottom-[15%] left-[15%] cursor-pointer p-1 text-gray-400">1</span>
+                         <span data-mode="OFF" data-angle="0" class="rotary-switch-label active absolute top-[5%] left-1/2 -translate-x-1/2 cursor-pointer p-1 text-gray-400">0</span>
+                         <span data-mode="MANUAL" data-angle="120" class="rotary-switch-label absolute bottom-[15%] right-[15%] cursor-pointer p-1 text-gray-400">2</span>
+                    </div>
+                </div>
+                <div id="mode-display" class="font-semibold text-sm text-green-400">OFF</div>
+            </div>
         </div>
     </div>
 
