@@ -216,11 +216,11 @@
                     <div id="rotary-switch-handle" class="absolute w-2 h-8 sm:h-10 bg-gray-300 rounded-lg transition-transform duration-500 ease-in-out" style="top: 0; left: 50%; transform: translateX(-50%) rotate(0deg); transform-origin: bottom;"></div>
                     <div class="absolute w-full h-full text-xs">
                          <!-- Ângulos ajustados para alinhamento correto com o ponteiro.
-                              "0" (OFF) no topo é 0 graus.
+                              "0" (OFF) no topo é -90 graus.
                               "1" (AUTO) na posição das 8h é 240 graus.
                               "2" (MANUAL) na posição das 4h é 120 graus. -->
                          <span data-mode="AUTO" data-angle="240" class="rotary-switch-label absolute bottom-[15%] left-[15%] cursor-pointer p-1 text-gray-400">1</span>
-                         <span data-mode="OFF" data-angle="0" class="rotary-switch-label active absolute top-[5%] left-1/2 -translate-x-1/2 cursor-pointer p-1 text-gray-400">0</span>
+                         <span data-mode="OFF" data-angle="-90" class="rotary-switch-label active absolute top-[5%] left-1/2 -translate-x-1/2 cursor-pointer p-1 text-gray-400">0</span>
                          <span data-mode="MANUAL" data-angle="120" class="rotary-switch-label absolute bottom-[15%] right-[15%] cursor-pointer p-1 text-gray-400">2</span>
                     </div>
                 </div>
