@@ -140,7 +140,7 @@
         <!-- Tank Container (takes available space in the middle) -->
         <!-- Adjusted top positioning slightly for mobile view, centers on larger screens -->
         <div class="flex-grow flex items-center justify-center w-full mt-4 mb-4 sm:mt-0 sm:mb-0">
-            <div class="relative w-48 h-64 sm:w-64 sm:h-80">
+            <div class="relative w-48 h-64 sm:w-64 sm:h-80" style="top: -35px;"> <!-- Adjusted top slightly -->
                 <!-- Container principal do tanque -->
                 <div class="relative w-full h-full">
                     <!-- Tampa Elíptica 2.5D -->
@@ -182,7 +182,8 @@
         </div>
 
         <!-- Bottom controls (Sliders and Rotary Switch) -->
-        <div class="flex justify-between w-full flex-wrap gap-4 sm:gap-8 mt-auto pt-4 sm:pt-6">
+        <!-- Use flex-grow and flex-shrink to distribute available space -->
+        <div class="flex justify-between w-full flex-wrap gap-4 sm:gap-8 mt-auto pb-4">
             <!-- Painel de Controle Inferior (Sliders) -->
             <!-- Alinhado no canto inferior esquerdo para mobile, e centralizado para desktop -->
             <div class="panel p-1 w-40 sm:w-8/12 sm:max-w-[180px] sm:p-2">
@@ -209,7 +210,7 @@
 
             <!-- Chave Seletora -->
             <!-- Alinhada no canto inferior direito para mobile, e no canto direito para desktop -->
-            <div class="panel p-2 flex flex-col items-center justify-center space-y-1 ml-auto sm:ml-0">
+            <div class="panel p-2 flex flex-col items-center justify-center space-y-1 ml-auto">
                 <div id="rotary-switch-dial" class="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gray-900/50 border-2 border-gray-600 flex items-center justify-content-center">
                     <!-- Ponteiro: top:0, left:50%, transform: translateX(-50%) rotate(0deg), transform-origin: bottom; -->
                     <div id="rotary-switch-handle" class="absolute w-2 h-8 sm:h-10 bg-gray-300 rounded-lg transition-transform duration-500 ease-in-out" style="top: 0; left: 50%; transform: translateX(-50%) rotate(0deg); transform-origin: bottom;"></div>
@@ -448,8 +449,8 @@
                 if (!activeLabel) return;
 
                 const angle = parseInt(activeLabel.dataset.angle, 10);
-                // Utiliza translateX para centralizar e rotate para a rotação.
-                // transform-origin: bottom; é definido no CSS para garantir o pivô correto.
+                // O transform-origin: bottom; no CSS do handle agora garante o pivô correto.
+                // Apenas use translateX para centralizar horizontalmente e rotate para a rotação.
                 rotarySwitchHandle.style.transform = `translateX(-50%) rotate(${angle}deg)`;
 
                 rotarySwitchLabels.forEach(l => l.classList.remove('active'));
