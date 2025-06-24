@@ -11,15 +11,28 @@
     <style>
         body {
             font-family: 'Poppins', sans-serif;
-            background-color: #1a103c;
+            background-color: #1a103c; /* Fallback color */
+            background-image: radial-gradient(circle at top left, #3a2b6f, #1a103c 70%); /* Dynamic gradient */
+            background-size: 200% 200%; /* Larger than viewport to allow animation */
+            animation: background-pan 30s linear infinite alternate; /* Pan animation */
             color: #e0e0e0;
             overflow: hidden;
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh; /* Garante que o corpo ocupe 100% da altura da viewport */
-            width: 100vw; /* Garante que o corpo ocupe 100% da largura da viewport */
+            height: 100vh;
+            width: 100vw;
         }
+
+        @keyframes background-pan {
+            0% {
+                background-position: 0% 0%;
+            }
+            100% {
+                background-position: 100% 100%;
+            }
+        }
+
         /* Estilo customizado para os sliders */
         input[type="range"] {
             -webkit-appearance: none;
@@ -131,7 +144,25 @@
             bottom: 0; /* Starts at the bottom of the water container */
             pointer-events: none; /* Bubbles should not interfere with clicks */
             z-index: 5; /* Below water surface (z-10), above water body */
-            /* transform: translateX(-50%); Removed from CSS, handled by JS */
+        }
+        
+        /* Overlay and Settings Panel Transitions */
+        #menu-overlay {
+            transition: opacity 0.3s ease-out;
+            opacity: 0;
+        }
+        #settings-panel {
+            transition: transform 0.3s ease-out, opacity 0.3s ease-out;
+            opacity: 0;
+            pointer-events: none; /* Allows clicks through when hidden */
+        }
+        #settings-panel.active {
+            opacity: 1;
+            pointer-events: auto; /* Re-enable clicks when active */
+        }
+        .simulation-ui-dimmed {
+            transition: opacity 0.3s ease-out;
+            opacity: 0.6; /* Dim the main UI when menu is open */
         }
     </style>
 </head>
@@ -258,11 +289,11 @@
     </div>
 
     <!-- Overlay para o menu lateral -->
-    <div id="menu-overlay" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-30 hidden"></div>
+    <div id="menu-overlay" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-30 hidden opacity-0"></div>
 
     <!-- Painel de Configurações (Lateral) -->
     <!-- Positioned absolutely, slides in from left -->
-    <div id="settings-panel" class="fixed top-0 left-0 h-full w-64 panel transform -translate-x-full transition-transform duration-300 ease-out z-40 p-6">
+    <div id="settings-panel" class="fixed top-0 left-0 h-full w-64 panel transform -translate-x-full z-40 p-6">
         <h2 class="text-2xl sm:text-3xl font-bold mb-6 text-center">Configurações</h2>
         <div class="space-y-4">
             <div>
@@ -553,8 +584,8 @@
                 bubble.style.left = `${Math.random() * 100}%`; 
 
                 const waterHeightPx = waterContainer.offsetHeight;
-                const startY_px = 0; // Bubble starts at the bottom of the water container (relative to its own container's bottom edge)
-                const endY_px = -waterHeightPx; // Bubble travels up to the top of the water container
+                const startY_px = 0;
+                const endY_px = -waterHeightPx;
 
                 const duration = Math.random() * 3000 + 2000;
                 const startTime = performance.now();
@@ -563,9 +594,9 @@
                     const elapsedTime = currentTime - startTime;
                     const progress = Math.min(elapsedTime / duration, 1);
 
-                    const currentTranslateY = startY_px + (endY_px - startY_px) * progress; // Calculate Y position
-                    const opacity = 0.5 * (1 - progress); // Fades out
-                    const scale = 0.5 + (progress * 0.5); // Grows from 0.5 to 1.0
+                    const currentTranslateY = startY_px + (endY_px - startY_px) * progress;
+                    const opacity = 0.5 * (1 - progress);
+                    const scale = 0.5 + (progress * 0.5);
 
                     bubble.style.transform = `translateX(-50%) translateY(${currentTranslateY}px) scale(${scale})`;
                     bubble.style.opacity = opacity;
@@ -584,7 +615,7 @@
             function startBubbleGeneration() {
                 if (bubbleGenerationInterval === null) {
                     bubbleGenerationInterval = setInterval(() => {
-                        if (isPumpOn || currentConsumptionRateLPH > 0) {
+                        if (isPumpOn || currentConsumptionRateLPH > 0) { 
                              if (currentTankVolumeLiters > 0) {
                                 createBubble();
                             }
@@ -623,14 +654,32 @@
 
             // --- FUNÇÕES DE UI E EVENTOS ---
 
+            // Function to trigger haptic feedback
+            function triggerHapticFeedback() {
+                if (navigator.vibrate) {
+                    navigator.vibrate(50); // Vibrate for 50ms
+                }
+            }
+
             function toggleSettingsPanel(show) {
                 if (show) {
                     populateSettingsForm();
                     settingsPanel.classList.remove('-translate-x-full');
+                    settingsPanel.classList.add('active'); // Add active class for opacity transition
                     menuOverlay.classList.remove('hidden');
+                    // Force reflow for transition to apply immediately
+                    void menuOverlay.offsetWidth; 
+                    menuOverlay.style.opacity = '1';
+                    simulationUI.classList.add('simulation-ui-dimmed'); // Dim main UI
                 } else {
                     settingsPanel.classList.add('-translate-x-full');
-                    menuOverlay.classList.add('hidden');
+                    settingsPanel.classList.remove('active'); // Remove active class for opacity transition
+                    menuOverlay.style.opacity = '0';
+                    simulationUI.classList.remove('simulation-ui-dimmed'); // Restore main UI brightness
+                    // Hide overlay after its transition completes
+                    setTimeout(() => {
+                        menuOverlay.classList.add('hidden');
+                    }, 300); // Match CSS transition duration
                 }
             }
 
@@ -689,6 +738,7 @@
 
             function requestModeChange(newMode) {
                 if (newMode === pumpControlMode) return;
+                triggerHapticFeedback(); // Haptic feedback on mode change request
                 pendingModeChange = newMode;
                 confirmationMessage.textContent = `Confirmar a troca de ${pumpControlMode} para ${newMode}?`;
                 confirmationModal.classList.remove('hidden');
@@ -696,6 +746,7 @@
 
             function confirmModeChange() {
                 if (pendingModeChange) {
+                    triggerHapticFeedback(); // Haptic feedback on confirmation
                     const oldModeForVisual = pumpControlMode;
                     pumpControlMode = pendingModeChange;
                     updateRotarySwitchVisual(pumpControlMode, oldModeForVisual);
@@ -704,6 +755,7 @@
             }
 
             function closeModal() {
+                triggerHapticFeedback(); // Haptic feedback on cancel/close
                 pendingModeChange = null;
                 confirmationModal.classList.add('hidden');
             }
@@ -734,6 +786,7 @@
 
             levelSlider.addEventListener('input', (e) => {
                 if (!levelSlider.disabled) {
+                    triggerHapticFeedback(); // Haptic feedback on slider input
                     const percentage = parseFloat(e.target.value);
                     currentTankVolumeLiters = (percentage / 100) * MAX_CAPACITY_LITERS;
                     updateWaterLevel();
@@ -741,29 +794,42 @@
             });
 
             consumptionSlider.addEventListener('input', (e) => {
+                triggerHapticFeedback(); // Haptic feedback on slider input
                 currentConsumptionRateLPH = parseInt(e.target.value, 10);
                 consumptionLabel.textContent = `${currentConsumptionRateLPH} L/H`;
             });
 
             infoBtn.addEventListener('click', () => {
+                triggerHapticFeedback(); // Haptic feedback on button click
                 areLabelsVisible = !areLabelsVisible;
                 infoBtn.classList.toggle('bg-violet-400/80');
                 updateOperatingPanel();
             });
 
-            settingsBtn.addEventListener('click', () => toggleSettingsPanel(true));
+            settingsBtn.addEventListener('click', () => {
+                triggerHapticFeedback(); // Haptic feedback on button click
+                toggleSettingsPanel(true);
+            });
             saveSettingsBtn.addEventListener('click', () => {
+                triggerHapticFeedback(); // Haptic feedback on button click
                 validateAndSaveSettings();
                 if (!document.querySelector('.error-message').textContent) {
                     toggleSettingsPanel(false);
                 }
             });
-            cancelSettingsBtn.addEventListener('click', () => toggleSettingsPanel(false));
-            menuOverlay.addEventListener('click', () => toggleSettingsPanel(false));
+            cancelSettingsBtn.addEventListener('click', () => {
+                triggerHapticFeedback(); // Haptic feedback on button click
+                toggleSettingsPanel(false);
+            });
+            menuOverlay.addEventListener('click', () => {
+                triggerHapticFeedback(); // Haptic feedback on overlay click
+                toggleSettingsPanel(false);
+            });
 
 
             rotarySwitchLabels.forEach(label => {
                 label.addEventListener('click', (e) => {
+                    triggerHapticFeedback(); // Haptic feedback on rotary label click
                     requestModeChange(e.target.dataset.mode);
                 });
             });
@@ -775,7 +841,7 @@
             function init() {
                 currentTankVolumeLiters = MAX_CAPACITY_LITERS * 0.50;
                 pumpControlMode = 'AUTO';
-                isPumpOn = false; // Initial pump state
+                isPumpOn = false;
                 runningTimeSeconds = 0;
                 stoppedTimeSeconds = 0;
 
