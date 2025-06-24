@@ -443,11 +443,8 @@
                     startBubbleGeneration();
                 }
 
-                if (currentConsumptionRateLPH > 0) {
-                    levelSlider.disabled = true;
-                } else {
-                    levelSlider.disabled = false;
-                }
+                // Removed the disabled state logic for the level slider
+                // levelSlider.disabled = (currentConsumptionRateLPH > 0); 
             }
             
             // --- FUNÇÕES DE ATUALIZAÇÃO DA UI ---
@@ -458,9 +455,8 @@
                 volumeDisplay.textContent = `${currentTankVolumeLiters.toFixed(1)} L`;
                 levelPercentageDisplay.textContent = `${percentage.toFixed(1)}%`;
 
-                if (levelSlider.disabled) {
-                    levelSlider.value = percentage;
-                }
+                // The slider is now always enabled, so its value is always synced
+                levelSlider.value = percentage;
 
                 if (percentage < 25) {
                     volumeDisplay.style.color = '#f87171';
@@ -657,7 +653,7 @@
             // Function to trigger haptic feedback
             function triggerHapticFeedback() {
                 if (navigator.vibrate) {
-                    navigator.vibrate(50); // Vibrate for 50ms
+                    navigator.vibrate(50);
                 }
             }
 
@@ -665,21 +661,19 @@
                 if (show) {
                     populateSettingsForm();
                     settingsPanel.classList.remove('-translate-x-full');
-                    settingsPanel.classList.add('active'); // Add active class for opacity transition
+                    settingsPanel.classList.add('active');
                     menuOverlay.classList.remove('hidden');
-                    // Force reflow for transition to apply immediately
                     void menuOverlay.offsetWidth; 
                     menuOverlay.style.opacity = '1';
-                    simulationUI.classList.add('simulation-ui-dimmed'); // Dim main UI
+                    simulationUI.classList.add('simulation-ui-dimmed');
                 } else {
                     settingsPanel.classList.add('-translate-x-full');
-                    settingsPanel.classList.remove('active'); // Remove active class for opacity transition
+                    settingsPanel.classList.remove('active');
                     menuOverlay.style.opacity = '0';
-                    simulationUI.classList.remove('simulation-ui-dimmed'); // Restore main UI brightness
-                    // Hide overlay after its transition completes
+                    simulationUI.classList.remove('simulation-ui-dimmed');
                     setTimeout(() => {
                         menuOverlay.classList.add('hidden');
-                    }, 300); // Match CSS transition duration
+                    }, 300);
                 }
             }
 
@@ -738,7 +732,7 @@
 
             function requestModeChange(newMode) {
                 if (newMode === pumpControlMode) return;
-                triggerHapticFeedback(); // Haptic feedback on mode change request
+                triggerHapticFeedback();
                 pendingModeChange = newMode;
                 confirmationMessage.textContent = `Confirmar a troca de ${pumpControlMode} para ${newMode}?`;
                 confirmationModal.classList.remove('hidden');
@@ -746,7 +740,7 @@
 
             function confirmModeChange() {
                 if (pendingModeChange) {
-                    triggerHapticFeedback(); // Haptic feedback on confirmation
+                    triggerHapticFeedback();
                     const oldModeForVisual = pumpControlMode;
                     pumpControlMode = pendingModeChange;
                     updateRotarySwitchVisual(pumpControlMode, oldModeForVisual);
@@ -755,7 +749,7 @@
             }
 
             function closeModal() {
-                triggerHapticFeedback(); // Haptic feedback on cancel/close
+                triggerHapticFeedback();
                 pendingModeChange = null;
                 confirmationModal.classList.add('hidden');
             }
@@ -785,51 +779,49 @@
             // --- EVENT LISTENERS ---
 
             levelSlider.addEventListener('input', (e) => {
-                if (!levelSlider.disabled) {
-                    triggerHapticFeedback(); // Haptic feedback on slider input
-                    const percentage = parseFloat(e.target.value);
-                    currentTankVolumeLiters = (percentage / 100) * MAX_CAPACITY_LITERS;
-                    updateWaterLevel();
-                }
+                triggerHapticFeedback();
+                const percentage = parseFloat(e.target.value);
+                currentTankVolumeLiters = (percentage / 100) * MAX_CAPACITY_LITERS;
+                updateWaterLevel();
             });
 
             consumptionSlider.addEventListener('input', (e) => {
-                triggerHapticFeedback(); // Haptic feedback on slider input
+                triggerHapticFeedback();
                 currentConsumptionRateLPH = parseInt(e.target.value, 10);
                 consumptionLabel.textContent = `${currentConsumptionRateLPH} L/H`;
             });
 
             infoBtn.addEventListener('click', () => {
-                triggerHapticFeedback(); // Haptic feedback on button click
+                triggerHapticFeedback();
                 areLabelsVisible = !areLabelsVisible;
                 infoBtn.classList.toggle('bg-violet-400/80');
                 updateOperatingPanel();
             });
 
             settingsBtn.addEventListener('click', () => {
-                triggerHapticFeedback(); // Haptic feedback on button click
+                triggerHapticFeedback();
                 toggleSettingsPanel(true);
             });
             saveSettingsBtn.addEventListener('click', () => {
-                triggerHapticFeedback(); // Haptic feedback on button click
+                triggerHapticFeedback();
                 validateAndSaveSettings();
                 if (!document.querySelector('.error-message').textContent) {
                     toggleSettingsPanel(false);
                 }
             });
             cancelSettingsBtn.addEventListener('click', () => {
-                triggerHapticFeedback(); // Haptic feedback on button click
+                triggerHapticFeedback();
                 toggleSettingsPanel(false);
             });
             menuOverlay.addEventListener('click', () => {
-                triggerHapticFeedback(); // Haptic feedback on overlay click
+                triggerHapticFeedback();
                 toggleSettingsPanel(false);
             });
 
 
             rotarySwitchLabels.forEach(label => {
                 label.addEventListener('click', (e) => {
-                    triggerHapticFeedback(); // Haptic feedback on rotary label click
+                    triggerHapticFeedback();
                     requestModeChange(e.target.dataset.mode);
                 });
             });
