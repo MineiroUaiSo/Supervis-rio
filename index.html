@@ -17,7 +17,8 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
+            height: 100vh; /* Garante que o corpo ocupe 100% da altura da viewport */
+            width: 100vw; /* Garante que o corpo ocupe 100% da largura da viewport */
         }
         /* Estilo customizado para os sliders */
         input[type="range"] {
@@ -57,9 +58,9 @@
         }
         .btn-config {
              background-color: rgba(23, 15, 58, 0.7);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(167, 139, 250, 0.3);
-            border-radius: 1rem;
+             backdrop-filter: blur(10px);
+             border: 1px solid rgba(167, 139, 250, 0.3);
+             border-radius: 1rem;
         }
         .rotary-switch-label.active {
             color: #4ade80; /* green-400 */
@@ -77,13 +78,13 @@
             z-index: 25;
             box-shadow: 0 0 5px #ff0000, 0 0 8px #ff0000;
         }
-        
+
         /* Estilo 2.5D Corrigido e Aprimorado */
         .tank-body {
             border-left: 3px solid rgba(49, 46, 129, 0.6);
             border-right: 3px solid rgba(49, 46, 129, 0.6);
             background: linear-gradient(to right, rgba(23, 15, 58, 0.1), rgba(49, 46, 129, 0.05), rgba(23, 15, 58, 0.1));
-            position: relative; 
+            position: relative;
             overflow: hidden;
         }
 
@@ -93,7 +94,7 @@
             background: linear-gradient(to bottom, #312e81, #1e1b4b);
             border-radius: 50%;
         }
-        
+
         .tank-bottom {
             height: 36px;
             background: linear-gradient(to bottom, #1e1b4b, #312e81);
@@ -110,27 +111,20 @@
             background: linear-gradient(to bottom, rgba(165, 180, 252, 0.7), rgba(99, 102, 241, 0.7));
             border-radius: 50%;
         }
-        
-        .lid-ellipse {
-            height: 36px;
-            background: linear-gradient(to bottom, #2d3748, #1a202c);
-            border-radius: 50%;
-            border: 2px solid #000;
-        }
-
     </style>
 </head>
 <body class="bg-[#1a103c]">
 
     <div id="simulation-ui" class="relative w-full h-full max-w-7xl max-h-[1024px] mx-auto">
-        
+
         <!-- Botão Configurações -->
         <button id="settings-btn" class="absolute top-4 left-4 sm:top-6 sm:left-6 z-40 px-3 py-1.5 btn-config text-xs sm:text-sm hover:bg-violet-500 transition-colors">
             CONFIGURAÇÕES
         </button>
 
         <!-- Caixa d'água e Sensor -->
-        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-64 sm:w-64 sm:h-80">
+        <!-- Ajustado para ficar um pouco mais alto que o centro -->
+        <div class="absolute top-[35%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-64 sm:w-64 sm:h-80">
             <!-- Container principal do tanque -->
             <div class="relative w-full h-full">
                 <!-- Tampa Elíptica 2.5D -->
@@ -148,30 +142,32 @@
                     <div class="relative w-full h-full">
                         <!-- Base do tanque (elipse inferior, atrás de tudo) -->
                         <div class="tank-bottom absolute bottom-0 left-0 right-0 z-0"></div>
-                        
+
                         <!-- Corpo do tanque (paredes de vidro) - agora contém a água -->
                         <div class="tank-body absolute top-[18px] left-0 right-0 bottom-[18px]">
                             <!-- Água -->
                              <div id="water-container" class="absolute bottom-0 left-0 right-0 z-10" style="height: 50%;">
                                  <div class="relative w-full h-full">
-                                    <div id="water-surface" class="water-surface absolute top-0 left-0 right-0"></div>
-                                    <div class="water-body absolute top-[18px] bottom-0 left-0 right-0"></div>
+                                     <div id="water-surface" class="water-surface absolute top-0 left-0 right-0"></div>
+                                     <div class="water-body absolute top-[18px] bottom-0 left-0 right-0"></div>
                                  </div>
                              </div>
                         </div>
-                        
+
                         <!-- Borda superior do tanque (na frente de tudo) -->
                         <div class="tank-rim absolute top-0 left-0 right-0 z-20"></div>
                     </div>
                 </div>
-                
-                 <!-- Pulsos de Onda -->
+
+                    <!-- Pulsos de Onda -->
                 <div id="wave-pulse-container" class="absolute top-[36px] left-[3px] right-[3px] bottom-0 overflow-hidden"></div>
             </div>
         </div>
 
-        <!-- Painel de Controle Inferior -->
-        <div class="absolute bottom-4 sm:bottom-8 left-1/2 -translate-x-1/2 w-8/12 max-w-[180px] p-1 sm:p-2 panel">
+        <!-- Painel de Controle Inferior (Sliders) -->
+        <!-- Alinhado no canto inferior esquerdo para mobile -->
+        <div class="absolute bottom-4 left-4 w-40 p-1 panel
+                    sm:bottom-8 sm:left-1/2 sm:-translate-x-1/2 sm:w-8/12 sm:max-w-[180px] sm:p-2">
             <div class="text-center mb-1">
                 <span id="volume-display" class="text-lg sm:text-xl font-bold text-green-400">1500.0 L</span>
             </div>
@@ -204,13 +200,20 @@
         </div>
 
         <!-- Chave Seletora -->
-        <div class="absolute bottom-4 right-4 sm:bottom-8 sm:right-8 panel p-2 flex flex-col items-center justify-center space-y-1">
-            <div id="rotary-switch-dial" class="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gray-900/50 border-2 border-gray-600 flex items-center justify-center">
-                <div id="rotary-switch-handle" class="absolute w-2 h-8 sm:h-10 bg-gray-300 rounded-lg origin-bottom transition-transform duration-500 ease-in-out" style="transform: rotate(0deg);"></div>
+        <!-- Alinhada no canto inferior esquerdo para mobile, ao lado do painel de sliders -->
+        <div class="absolute bottom-4 left-[180px] panel p-2 flex flex-col items-center justify-center space-y-1
+                    sm:bottom-8 sm:right-8 sm:left-auto">
+            <div id="rotary-switch-dial" class="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gray-900/50 border-2 border-gray-600 flex items-center justify-content-center">
+                <!-- Ajustado transform para alinhar o ponteiro ao centro -->
+                <div id="rotary-switch-handle" class="absolute w-2 h-8 sm:h-10 bg-gray-300 rounded-lg origin-bottom transition-transform duration-500 ease-in-out" style="transform: translate(-50%, -100%) rotate(0deg);"></div>
                 <div class="absolute w-full h-full text-xs">
-                     <span data-mode="AUTO" data-angle="-45" class="rotary-switch-label absolute bottom-[15%] left-[15%] cursor-pointer p-1 text-gray-400">1</span>
-                     <span data-mode="OFF" data-angle="90" class="rotary-switch-label active absolute top-[5%] left-1/2 -translate-x-1/2 cursor-pointer p-1 text-gray-400">0</span>
-                     <span data-mode="MANUAL" data-angle="225" class="rotary-switch-label absolute bottom-[15%] right-[15%] cursor-pointer p-1 text-gray-400">2</span>
+                     <!-- Ângulos ajustados para alinhamento correto com o ponteiro.
+                          "0" (OFF) no topo é 0 graus.
+                          "1" (AUTO) na posição das 8h é 240 graus.
+                          "2" (MANUAL) na posição das 4h é 120 graus. -->
+                     <span data-mode="AUTO" data-angle="240" class="rotary-switch-label absolute bottom-[15%] left-[15%] cursor-pointer p-1 text-gray-400">1</span>
+                     <span data-mode="OFF" data-angle="0" class="rotary-switch-label active absolute top-[5%] left-1/2 -translate-x-1/2 cursor-pointer p-1 text-gray-400">0</span>
+                     <span data-mode="MANUAL" data-angle="120" class="rotary-switch-label absolute bottom-[15%] right-[15%] cursor-pointer p-1 text-gray-400">2</span>
                 </div>
             </div>
             <div id="mode-display" class="font-semibold text-sm text-green-400">OFF</div>
@@ -294,19 +297,19 @@
             let PUMP_RATE_LPH = 5000;
             let PUMP_ACTIVATION_THRESHOLD_PERCENTAGE = 75;
             let PUMP_DEACTIVATION_THRESHOLD_PERCENTAGE = 100;
-            
+
             let currentTankVolumeLiters = 1500;
             let currentConsumptionRateLPH = 40;
             let isPumpOn = false;
             let pumpControlMode = 'OFF'; // 'AUTO', 'OFF', 'MANUAL'
-            
+
             let areLabelsVisible = false;
             let runningTimeSeconds = 0;
             let stoppedTimeSeconds = 0;
-            
+
             let lastTimestamp = 0;
             let timeAccumulator = 0; // Acumula tempo para atualizações de 100ms
-            
+
             let pendingModeChange = null;
 
             // --- FUNÇÕES DE LÓGICA ---
@@ -314,7 +317,7 @@
             function updateSimulation(deltaTime) {
                 // deltaTime está em segundos
                 const simTimeFactor = 360; // 1 segundo real = 360 segundos (6 minutos) simulados
-                
+
                 // Lógica da Bomba
                 switch (pumpControlMode) {
                     case 'AUTO':
@@ -332,7 +335,7 @@
                         isPumpOn = false;
                         break;
                 }
-                
+
                 // Enchimento e Consumo
                 if (isPumpOn) {
                     currentTankVolumeLiters += (PUMP_RATE_LPH / 3600) * deltaTime * simTimeFactor;
@@ -365,11 +368,11 @@
 
             function updateWaterLevel() {
                 const percentage = (currentTankVolumeLiters / MAX_CAPACITY_LITERS) * 100;
-                
+
                 waterContainer.style.height = `${percentage}%`;
                 volumeDisplay.textContent = `${currentTankVolumeLiters.toFixed(1)} L`;
                 levelPercentageDisplay.textContent = `${percentage.toFixed(1)}%`;
-                
+
                 if (levelSlider.disabled) {
                     levelSlider.value = percentage;
                 }
@@ -383,7 +386,7 @@
                     volumeDisplay.style.color = '#4ade80'; // green-400
                 }
             }
-            
+
             function formatTime(totalSeconds) {
                 const minutes = Math.floor(totalSeconds / 60);
                 return `${minutes} min`;
@@ -404,7 +407,7 @@
 
                         <span class="font-semibold ${areLabelsVisible ? '' : 'hidden'}">${timeLabel}:</span>
                         <span class="font-semibold">${timeToDisplay}</span>
-                        
+
                         <span class="font-semibold ${areLabelsVisible ? '' : 'hidden'}">Taxa Consumo:</span>
                         <span class="font-semibold">${currentConsumptionRateLPH} L/H</span>
 
@@ -419,14 +422,15 @@
                     </div>
                 `;
             }
-            
+
             function updateRotarySwitchVisual(mode) {
                 const activeLabel = document.querySelector(`.rotary-switch-label[data-mode="${mode}"]`);
                 if (!activeLabel) return;
 
                 const angle = parseInt(activeLabel.dataset.angle, 10);
-                rotarySwitchHandle.style.transform = `rotate(${angle-90}deg)`;
-                
+                // Utiliza diretamente o ângulo definido no data-angle
+                rotarySwitchHandle.style.transform = `translate(-50%, -100%) rotate(${angle}deg)`;
+
                 rotarySwitchLabels.forEach(l => l.classList.remove('active'));
                 activeLabel.classList.add('active');
 
@@ -435,15 +439,15 @@
                 else if (mode === 'MANUAL') modeDisplay.style.color = '#facc15'; // yellow-400
                 else modeDisplay.style.color = '#f87171'; // red-400
             }
-            
+
             function animateWavePulse() {
                 const pulse = document.createElement('div');
                 pulse.className = 'wave-pulse';
                 wavePulseContainer.appendChild(pulse);
-                
+
                 // O ponto final da animação é o topo da elipse da superfície da água
                 const waterSurfaceY = waterSurface.getBoundingClientRect().top - wavePulseContainer.getBoundingClientRect().top;
-                const duration = 1000; 
+                const duration = 1000;
 
                 pulse.animate([
                     { top: '0px', width: '10px', opacity: 0.8 },
@@ -477,7 +481,7 @@
                 document.getElementById('pump-on-percentage-input').value = PUMP_ACTIVATION_THRESHOLD_PERCENTAGE;
                 document.getElementById('pump-off-percentage-input').value = PUMP_DEACTIVATION_THRESHOLD_PERCENTAGE;
             }
-            
+
             function validateAndSaveSettings() {
                 const inputs = {
                     capacity: document.getElementById('tank-capacity-input'),
@@ -510,16 +514,16 @@
                 if (isNaN(on) || on < 0 || on > 100) showError(inputs.on, 'Deve ser entre 0 e 100.');
                 if (isNaN(off) || off < 0 || off > 100) showError(inputs.off, 'Deve ser entre 0 e 100.');
                 if (on >= off) showError(inputs.on, 'Ligar % deve ser menor que Desligar %.');
-                
+
                 if (!isValid) return;
 
                 const oldPercentage = (currentTankVolumeLiters / MAX_CAPACITY_LITERS) * 100;
-                
+
                 MAX_CAPACITY_LITERS = capacity;
                 PUMP_RATE_LPH = flow;
                 PUMP_ACTIVATION_THRESHOLD_PERCENTAGE = on;
                 PUMP_DEACTIVATION_THRESHOLD_PERCENTAGE = off;
-                
+
                 currentTankVolumeLiters = (oldPercentage / 100) * MAX_CAPACITY_LITERS;
 
                 toggleSettingsPanel(false);
@@ -553,7 +557,7 @@
                 }
                 const deltaTime = (timestamp - lastTimestamp) / 1000; // em segundos
                 lastTimestamp = timestamp;
-                
+
                 timeAccumulator += deltaTime;
 
                 // Atualizar a lógica da simulação em intervalos fixos para estabilidade
@@ -561,11 +565,11 @@
                     updateSimulation(0.05);
                     timeAccumulator -= 0.05;
                 }
-                
+
                 // Atualizar a UI em cada quadro
                 updateWaterLevel();
                 updateOperatingPanel();
-                
+
                 requestAnimationFrame(mainLoop);
             }
 
@@ -593,7 +597,7 @@
             settingsBtn.addEventListener('click', () => toggleSettingsPanel(true));
             saveSettingsBtn.addEventListener('click', validateAndSaveSettings);
             cancelSettingsBtn.addEventListener('click', () => toggleSettingsPanel(false));
-            
+
             rotarySwitchLabels.forEach(label => {
                 label.addEventListener('click', (e) => {
                     requestModeChange(e.target.dataset.mode);
@@ -611,7 +615,7 @@
                 setInterval(animateWavePulse, 250);
                 requestAnimationFrame(mainLoop);
             }
-            
+
             init();
         });
     </script>
