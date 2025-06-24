@@ -318,6 +318,7 @@
             let currentConsumptionRateLPH = 40;
             let isPumpOn = false;
             let pumpControlMode = 'OFF'; // 'AUTO', 'OFF', 'MANUAL'
+            let previousPumpControlMode = 'OFF'; // New variable to store the previous mode
 
             let areLabelsVisible = false;
             let runningTimeSeconds = 0;
@@ -331,6 +332,13 @@
             // Global variable to store the current visual angle of the handle
             let currentHandleAngle = 0;
             let animationFrameId = null;
+
+            // Map modes to their angles
+            const modeAngles = {
+                'OFF': 0,    // Top position
+                'AUTO': 240, // Bottom-left position (8 o'clock equivalent)
+                'MANUAL': 120 // Bottom-right position (4 o'clock equivalent)
+            };
 
             // --- FUNÇÕES DE LÓGICA ---
 
@@ -455,29 +463,44 @@
                 `;
             }
 
-            function updateRotarySwitchVisual(mode) {
-                const activeLabel = document.querySelector(`.rotary-switch-label[data-mode="${mode}"]`);
-                if (!activeLabel) return;
+            // Function to update the visual of the rotary switch handle
+            function updateRotarySwitchVisual(newMode, oldMode) {
+                const targetAngle = modeAngles[newMode];
+                const startAngle = currentHandleAngle;
 
-                const targetAngle = parseInt(activeLabel.dataset.angle, 10);
-
-                // If there's an ongoing animation, cancel it
+                // Cancel any ongoing animation
                 if (animationFrameId) {
                     cancelAnimationFrame(animationFrameId);
+                }
+
+                let delta;
+
+                // Special handling for transitions between AUTO and MANUAL (passing through OFF)
+                if ((oldMode === 'AUTO' && newMode === 'MANUAL')) {
+                    // From AUTO (240deg) to MANUAL (120deg) - Force clockwise through OFF (0deg)
+                    // Calculate clockwise distance from startAngle to 0, then from 0 to targetAngle
+                    delta = (360 - (startAngle % 360) + modeAngles['OFF']) % 360 + (targetAngle - modeAngles['OFF'] + 360) % 360;
+
+                } else if ((oldMode === 'MANUAL' && newMode === 'AUTO')) {
+                    // From MANUAL (120deg) to AUTO (240deg) - Force counter-clockwise through OFF (0deg)
+                    // Calculate counter-clockwise distance from startAngle to 0, then from 0 to targetAngle
+                    delta = -((startAngle - modeAngles['OFF'] + 360) % 360 + (modeAngles['OFF'] - targetAngle + 360) % 360);
+
+                } else {
+                    // For all other transitions (to/from OFF), use the shortest path
+                    delta = targetAngle - startAngle;
+                    // Normalize delta to be the shortest path (-180 to 180 degrees)
+                    if (delta > 180) {
+                        delta -= 360;
+                    } else if (delta < -180) {
+                        delta += 360;
+                    }
                 }
 
                 // Animation parameters
                 const duration = 300; // milliseconds for smooth transition
                 const startTime = performance.now();
-                const startAngle = currentHandleAngle;
-
-                // Calculate shortest path
-                let delta = targetAngle - startAngle;
-                if (delta > 180) {
-                    delta -= 360;
-                } else if (delta < -180) {
-                    delta += 360;
-                }
+                const initialAngle = currentHandleAngle;
 
                 function animateRotation(currentTime) {
                     const elapsedTime = currentTime - startTime;
@@ -486,7 +509,7 @@
                     // Easing function (EaseInOutQuad)
                     const easedProgress = progress < 0.5 ? 2 * progress * progress : 1 - Math.pow(-2 * progress + 2, 2) / 2;
 
-                    currentHandleAngle = startAngle + (delta * easedProgress);
+                    currentHandleAngle = initialAngle + (delta * easedProgress);
 
                     // Apply rotation
                     rotarySwitchHandle.style.transform = `translate(-50%, -100%) rotate(${currentHandleAngle}deg)`;
@@ -503,12 +526,17 @@
 
                 animationFrameId = requestAnimationFrame(animateRotation);
 
+                // Update active label visual
                 rotarySwitchLabels.forEach(l => l.classList.remove('active'));
-                activeLabel.classList.add('active');
+                const activeLabel = document.querySelector(`.rotary-switch-label[data-mode="${newMode}"]`);
+                if (activeLabel) {
+                    activeLabel.classList.add('active');
+                }
 
-                modeDisplay.textContent = mode;
-                if (mode === 'AUTO') modeDisplay.style.color = '#60a5fa'; // blue-400
-                else if (mode === 'MANUAL') modeDisplay.style.color = '#facc15'; // yellow-400
+                // Update mode display text and color
+                modeDisplay.textContent = newMode;
+                if (newMode === 'AUTO') modeDisplay.style.color = '#60a5fa'; // blue-400
+                else if (newMode === 'MANUAL') modeDisplay.style.color = '#facc15'; // yellow-400
                 else modeDisplay.style.color = '#f87171'; // red-400
             }
 
@@ -603,6 +631,8 @@
 
             function requestModeChange(newMode) {
                 if (newMode === pumpControlMode) return;
+                // Store the current mode as the previous mode before setting pending
+                previousPumpControlMode = pumpControlMode;
                 pendingModeChange = newMode;
                 confirmationMessage.textContent = `Confirmar a troca de ${pumpControlMode} para ${newMode}?`;
                 confirmationModal.classList.remove('hidden');
@@ -610,8 +640,9 @@
 
             function confirmModeChange() {
                 if (pendingModeChange) {
-                    pumpControlMode = pendingModeChange;
-                    updateRotarySwitchVisual(pumpControlMode);
+                    const oldModeForVisual = pumpControlMode; // This is the mode before updating pumpControlMode
+                    pumpControlMode = pendingModeChange; // Update the actual pumpControlMode
+                    updateRotarySwitchVisual(pumpControlMode, oldModeForVisual); // Pass both new and old modes
                 }
                 closeModal();
             }
@@ -691,12 +722,10 @@
                 updateWaterLevel();
                 updateOperatingPanel();
                 // Initialize currentHandleAngle based on the default pumpControlMode
-                const initialLabel = document.querySelector(`.rotary-switch-label[data-mode="${pumpControlMode}"]`);
-                if (initialLabel) {
-                    currentHandleAngle = parseInt(initialLabel.dataset.angle, 10);
-                    rotarySwitchHandle.style.transform = `translate(-50%, -100%) rotate(${currentHandleAngle}deg)`;
-                }
-                updateRotarySwitchVisual(pumpControlMode); // This will ensure the visual is set correctly on load
+                currentHandleAngle = modeAngles[pumpControlMode];
+                rotarySwitchHandle.style.transform = `translate(-50%, -100%) rotate(${currentHandleAngle}deg)`;
+                
+                updateRotarySwitchVisual(pumpControlMode, pumpControlMode); // Set initial visual state
                 setInterval(animateWavePulse, 250);
                 requestAnimationFrame(mainLoop);
             }
