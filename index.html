@@ -200,12 +200,12 @@
         </div>
 
         <!-- Chave Seletora -->
-        <!-- Alinhada no canto inferior esquerdo para mobile, ao lado do painel de sliders -->
-        <div class="absolute bottom-4 left-[180px] panel p-2 flex flex-col items-center justify-center space-y-1
+        <!-- Alinhada no canto inferior direito para mobile.
+             Ajustes finos para alinhamento do ponteiro. -->
+        <div class="absolute bottom-4 right-4 panel p-2 flex flex-col items-center justify-center space-y-1
                     sm:bottom-8 sm:right-8 sm:left-auto">
             <div id="rotary-switch-dial" class="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gray-900/50 border-2 border-gray-600 flex items-center justify-content-center">
-                <!-- Ajustado transform para alinhar o ponteiro ao centro.
-                     A propriedade transform-origin: bottom garante que a rotação ocorra a partir da base do ponteiro. -->
+                <!-- Adicionado top:0, left:50% para posicionamento e transform-origin: bottom para rotação correta -->
                 <div id="rotary-switch-handle" class="absolute w-2 h-8 sm:h-10 bg-gray-300 rounded-lg transition-transform duration-500 ease-in-out" style="top: 0; left: 50%; transform: translateX(-50%) rotate(0deg); transform-origin: bottom;"></div>
                 <div class="absolute w-full h-full text-xs">
                      <!-- Ângulos ajustados para alinhamento correto com o ponteiro.
