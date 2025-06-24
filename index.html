@@ -310,15 +310,14 @@
 
             // --- VARIÁVEIS DE SIMULAÇÃO ---
             let MAX_CAPACITY_LITERS = 3000;
-            let PUMP_RATE_LPH = 5000;
+            let PUMP_RATE_LPH = 1500; // Alterado para 1500 L/H
             let PUMP_ACTIVATION_THRESHOLD_PERCENTAGE = 75;
             let PUMP_DEACTIVATION_THRESHOLD_PERCENTAGE = 100;
 
-            let currentTankVolumeLiters = 1500;
+            let currentTankVolumeLiters = MAX_CAPACITY_LITERS * 0.50; // 50% da capacidade
             let currentConsumptionRateLPH = 40;
             let isPumpOn = false;
-            let pumpControlMode = 'OFF'; // 'AUTO', 'OFF', 'MANUAL'
-            let previousPumpControlMode = 'OFF'; // New variable to store the previous mode
+            let pumpControlMode = 'AUTO'; // Alterado para AUTO
 
             let areLabelsVisible = false;
             let runningTimeSeconds = 0;
@@ -476,15 +475,19 @@
                 let delta;
 
                 // Special handling for transitions between AUTO and MANUAL (passing through OFF)
-                if ((oldMode === 'AUTO' && newMode === 'MANUAL')) {
+                if (oldMode === 'AUTO' && newMode === 'MANUAL') {
                     // From AUTO (240deg) to MANUAL (120deg) - Force clockwise through OFF (0deg)
                     // Calculate clockwise distance from startAngle to 0, then from 0 to targetAngle
-                    delta = (360 - (startAngle % 360) + modeAngles['OFF']) % 360 + (targetAngle - modeAngles['OFF'] + 360) % 360;
+                    let angleFromStartToOff = (modeAngles['OFF'] - startAngle + 360) % 360;
+                    let angleFromOffToTarget = (targetAngle - modeAngles['OFF'] + 360) % 360;
+                    delta = angleFromStartToOff + angleFromOffToTarget;
 
-                } else if ((oldMode === 'MANUAL' && newMode === 'AUTO')) {
+                } else if (oldMode === 'MANUAL' && newMode === 'AUTO') {
                     // From MANUAL (120deg) to AUTO (240deg) - Force counter-clockwise through OFF (0deg)
                     // Calculate counter-clockwise distance from startAngle to 0, then from 0 to targetAngle
-                    delta = -((startAngle - modeAngles['OFF'] + 360) % 360 + (modeAngles['OFF'] - targetAngle + 360) % 360);
+                    let angleFromStartToOff = (startAngle - modeAngles['OFF'] + 360) % 360;
+                    let angleFromOffToTarget = (modeAngles['OFF'] - targetAngle + 360) % 360;
+                    delta = -(angleFromStartToOff + angleFromOffToTarget);
 
                 } else {
                     // For all other transitions (to/from OFF), use the shortest path
@@ -632,7 +635,6 @@
             function requestModeChange(newMode) {
                 if (newMode === pumpControlMode) return;
                 // Store the current mode as the previous mode before setting pending
-                previousPumpControlMode = pumpControlMode;
                 pendingModeChange = newMode;
                 confirmationMessage.textContent = `Confirmar a troca de ${pumpControlMode} para ${newMode}?`;
                 confirmationModal.classList.remove('hidden');
